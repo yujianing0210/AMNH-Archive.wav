@@ -2,7 +2,6 @@
 
 **Turning static artifacts into layered sonic identities**
 
----
 
 ## ✨ Overview
 
@@ -16,7 +15,6 @@ Instead of treating this as a simple image-to-music tool, the system frames each
 
 Each artifact becomes a unique, playable audio experience — a form of **digital synesthesia** between vision, history, and sound.
 
----
 
 ## 🔊 How it works
 
@@ -34,7 +32,6 @@ The system uses a **Three-Layer Sound Model**:
 
 If an uploaded image is not found in the database, the system uses AI to **infer an artifact record** before generating sound.
 
----
 
 ## 🧠 Key Features
 
@@ -45,24 +42,21 @@ If an uploaded image is not found in the database, the system uses AI to **infer
 * 🧱 Layered sound architecture (Bottom / Middle / Surface)
 * 📚 Save and browse generated sonic records
 
----
 
 ## 🖥️ Demo
 
-*(Add your deployment link here if available)*
+*Link not available yet*
 
----
 
 ## 🚀 Getting Started
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-cd YOUR_REPO_NAME
+git clone https://github.com/yujianing0210/AMNH-Archive.wav.git
+cd AMNH-Archive.wav
 ```
 
----
 
 ### 2. Install dependencies
 
@@ -70,7 +64,6 @@ cd YOUR_REPO_NAME
 npm install
 ```
 
----
 
 ### 3. Run the development server
 
@@ -78,38 +71,12 @@ npm install
 npm start
 ```
 
----
 
 ### 4. Open in browser
 
 ```bash
 http://localhost:3000
 ```
-
----
-
-## 🛠️ Tech Stack
-
-* **Frontend:** HTML / CSS / JavaScript
-* **Audio Engine:** Tone.js
-* **AI Integration:** OpenAI API (for artifact inference & sonic profile generation)
-* **Canvas Processing:** Image analysis + scanline mapping
-
----
-
-## 📁 Project Structure (simplified)
-
-```
-/public
-/src
-  ├── index.html
-  ├── styles.css
-  ├── app.js
-  ├── audio/
-  ├── utils/
-```
-
----
 
 ## 🔮 Future Work
 
