@@ -1,0 +1,182 @@
+[
+  {
+    "id": "AMNH-001",
+    "name": "Child's moccasins, Arapaho, Wyoming",
+    "image_path": "images\\AMNH-001.jpg",
+    "metadata": {
+      "era": "1988 (Catalog Date)",
+      "culture": "Arapaho (阿拉帕霍族)",
+      "material": "Leather/hide, glass beads",
+      "function": "Children's footwear (儿童鞋履)",
+      "description": "Small soft leather moccasins. The surface is heavily decorated with geometric beadwork, featuring distinct horizontal stripes in red, yellow, dark blue, and green against a white beaded background."
+    }
+  },
+  {
+    "id": "AMNH-002",
+    "name": "Beaded moccasins, Thompson River Indians of Canada",
+    "image_path": "images\\AMNH-002.jpg",
+    "metadata": {
+      "era": "Unknown (Historical)",
+      "culture": "Thompson River Indians (Nlaka'pamux), Canada",
+      "material": "Leather/hide, fur, quills/cylindrical beads, dark and white round beads",
+      "function": "Traditional footwear",
+      "description": "Soft brown hide moccasins featuring textured fur trim at the ankles and long leather fringes. The vamp is decorated with a striking, radiating sunburst pattern made of light-colored quills or long cylindrical beads, punctuated by high-contrast clusters of dark and white round beads."
+    }
+  },
+  {
+    "id": "AMNH-003",
+    "name": "Girl's moccasins and leggings, Arapaho, Oklahoma",
+    "image_path": "images\\AMNH-003.jpg",
+    "metadata": {
+      "era": "1998 (Catalog Date)",
+      "culture": "Arapaho (阿拉帕霍族)",
+      "material": "Tan buckskin (leather), glass beads",
+      "function": "Traditional footwear and leggings (传统连体鞋履)",
+      "description": "Tall, connected moccasins and leggings made of soft tan leather. They feature intricate geometric beadwork including crosses and diamonds in white, red, blue, and green, along with leather fringes at the top."
+    }
+  },
+  {
+    "id": "AMNH-004",
+    "name": "Butterflies pinned in storage box",
+    "image_path": "images\\AMNH-004.jpg",
+    "metadata": {
+      "era": "1996 (Photograph Date)",
+      "culture": "Entomology / Natural History",
+      "material": "Biological specimens (Insects)",
+      "function": "Scientific specimen storage and display",
+      "description": "A dense, structured grid of vibrant, iridescent blue butterflies pinned in a wooden box. The highly uniform blue repeating pattern is suddenly interrupted by a single brown owl butterfly near the bottom center."
+    }
+  },
+  {
+    "id": "AMNH-005",
+    "name": "Fabled web-footed horse of Neptune",
+    "image_path": "images\\AMNH-005.jpg",
+    "metadata": {
+      "era": "1555",
+      "culture": "16th Century European / Mythological Natural History",
+      "material": "Hand-colored woodblock print on paper",
+      "function": "Illustration from an early book on fish and marine life",
+      "description": "A vintage hand-colored woodblock print depicting a mythical sea monster. It features the upper half of a white horse with a blue mane and webbed front hooves, transitioning smoothly into a long, coiled, serpentine fish tail swimming in horizontal stylized blue waves."
+    }
+  },
+  {
+    "id": "AMNH-006",
+    "name": "Indo-Pacific fire urchin",
+    "image_path": "images\\AMNH-006.jpg",
+    "metadata": {
+      "era": "1887",
+      "culture": "19th Century Scientific Illustration / Zoology",
+      "material": "Illustration on paper",
+      "function": "Scientific documentation of marine species",
+      "description": "A highly detailed, top-down scientific illustration of a fire urchin. It exhibits strong, hypnotic radial symmetry with alternating bands of dark red spiky textures, golden-tan areas, and striking lines of bright blue dots forming a star-like pattern from the center."
+    }
+  },
+  {
+    "id": "AMNH-007",
+    "name": "19th century Chinese astrological compass",
+    "image_path": "images\\AMNH-007.jpg",
+    "metadata": {
+      "era": "19th Century",
+      "culture": "Chinese",
+      "material": "Wood, metal (magnetic needle), pigment",
+      "function": "Astrology, calendar calculations, and feng-shui orientation",
+      "description": "A circular wooden astrological compass (Luopan) featuring a small central magnetic needle. It is surrounded by numerous tightly packed concentric rings on a black background, densely inscribed with traditional Chinese characters in gold and red paint."
+    }
+  },
+  {
+    "id": "AMNH-008",
+    "name": "Snuff boxes in compact storage",
+    "image_path": "images\\AMNH-008.jpg",
+    "metadata": {
+      "era": "Unknown (Drummond Collection)",
+      "culture": "Asian / Global",
+      "material": "Porcelain, glass, carved lacquer, stone",
+      "function": "Personal accessories, storage for snuff",
+      "description": "A museum storage drawer containing a strict, organized grid of numerous miniature snuff bottles and boxes. Despite the uniform grid layout, the bottles exhibit a chaotic variety of materials, vibrant colors (deep blues, vivid reds, jade greens), and intricate decorative patterns."
+    }
+  },
+  {
+    "id": "AMNH-009",
+    "name": "Zebra swallowtail butterfly, photomicrograph of wing scales",
+    "image_path": "images\\AMNH-009.jpg",
+    "metadata": {
+      "era": "Unknown (Photomicrograph)",
+      "culture": "Entomology / Microscopy",
+      "material": "Biological specimen (butterfly scales)",
+      "function": "Microscopic scientific documentation",
+      "description": "An extreme close-up microscopic view of butterfly wing scales. It resembles a pointillist painting or a digital mosaic, filled with thousands of tiny, overlapping, tear-drop shaped scales. The colors form abstract patches of dark brown/black, fiery orange-red, soft white, and pale blue."
+    }
+  },
+  {
+    "id": "AMNH-010",
+    "name": "Weidemeyer's admiral butterfly, underside",
+    "image_path": "images\\AMNH-010.jpg",
+    "metadata": {
+      "era": "Unknown",
+      "culture": "Entomology",
+      "material": "Biological specimen",
+      "function": "Scientific documentation",
+      "description": "A single butterfly pinned against a solid dark background. The underside of its wings displays a highly intricate, high-contrast pattern: stark white bands and spots heavily outlined by thick black veins, with subtle accents of pale blue and orange near the edges, creating a stained-glass effect."
+    }
+  },
+  {
+    "id": "AMNH-011",
+    "name": "Twelve butterflies of South America, each pinned in individual storage box",
+    "image_path": "images\\AMNH-011.jpg",
+    "metadata": {
+      "era": "1997",
+      "culture": "Entomology",
+      "material": "Biological specimens, cardboard boxes",
+      "function": "Scientific collection and organization",
+      "description": "A 4x3 grid of individual white square boxes, each containing a single pinned butterfly. While the grid is perfectly rigid, the butterflies exhibit striking variations in wing patterns and incredibly vivid, saturated colors, mostly dominated by deep velvet blacks paired with fluorescent pinks, electric blues, and golden yellows."
+    }
+  },
+  {
+    "id": "AMNH-012",
+    "name": "Gemstone crystals: tourmaline, aquamarine, morganite, heliodor, topaz, kunzite, spodumene and citrine",
+    "image_path": "images\\AMNH-012.jpg",
+    "metadata": {
+      "era": "1990 (Photograph Date)",
+      "culture": "Geology / Mineralogy",
+      "material": "Natural gemstone crystals",
+      "function": "Scientific collection and aesthetic display",
+      "description": "A vibrant cluster of uncut, raw gemstone crystals against a deep black background. The crystals feature sharp, geometric, faceted structures and intense, translucent colors, including deep magenta, icy cyan, golden yellow, and pale violet. Light refracts sharply through their glassy, crystalline surfaces."
+    }
+  },
+  {
+    "id": "AMNH-013",
+    "name": "16th century German astrolabe",
+    "image_path": "images\\AMNH-013.jpg",
+    "metadata": {
+      "era": "16th Century",
+      "culture": "German / European Renaissance",
+      "material": "Brass / Metal",
+      "function": "Astronomical calculations, celestial navigation",
+      "description": "A golden, circular brass astrolabe. The surface is intricately engraved with astronomical markings, degrees, hours, and signs of the zodiac. It features a rotating, cut-out rete (the top plate with pointer-like structures) and a straight sighting rule crossing the center."
+    }
+  },
+  {
+    "id": "AMNH-014",
+    "name": "Mounted Allosaurus skeleton, 3/4 front",
+    "image_path": "images\\AMNH-014.jpg",
+    "metadata": {
+      "era": "Late Jurassic period (approx. 155 to 145 million years ago)",
+      "culture": "Paleontology",
+      "material": "Fossilized bone (mounted skeleton)",
+      "function": "Apex predator / Museum display",
+      "description": "A stark black-and-white archival photograph of a massive, fully articulated Allosaurus skeleton mounted in an aggressive, forward-leaning posture. The complex, repetitive structure of its vertebrae and ribs creates a strong, jagged visual rhythm, contrasted by the huge, empty eye sockets of its skull."
+    }
+  },
+  {
+    "id": "AMNH-015",
+    "name": "Archaeopteryx siemensii",
+    "image_path": "images\\AMNH-015.jpg",
+    "metadata": {
+      "era": "Late Jurassic period (approx. 150 million years ago)",
+      "culture": "Paleontology",
+      "material": "Fossil imprints in Solnhofen limestone",
+      "function": "Transitional fossil (dinosaur to bird)",
+      "description": "A black-and-white photograph of a famous fossil slab. Embedded within the rough, textured surface of the light gray limestone are the dark, delicate, and chaotic skeletal remains of the Archaeopteryx, surrounded by the faint but distinct impressions of ancient feathers radiating outward."
+    }
+  }
+]

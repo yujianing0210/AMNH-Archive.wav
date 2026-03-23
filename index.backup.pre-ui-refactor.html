@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Collection Sound Decoder - Phase 1 Prototype</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        /* 这里是 CSS：负责界面长相，让它看起来像个专业的解码终端 */
+        body {
+            font-family: 'Courier New', Courier, monospace; /* 等宽字体，更有科技感 */
+            background-color: #0d1117; /* 暗黑背景 */
+            color: #c9d1d9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+        }
+        
+
+        /* 主容器 */
+        .container {
+            width: 800px;
+            display: flex;
+            gap: 20px; /* 元素之间的间距 */
+        }
+
+        /* 左侧：上传与显示区域 */
+        .display-panel {
+            flex: 1; /* 占据一半宽度 */
+            background-color: #161b22;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+            text-align: center;
+        }
+
+        /* 隐藏原生上传按钮，用 label 自定义样式 */
+        #file-input {
+            display: none;
+        }
+        .upload-label {
+            display: inline-block;
+            background-color: #21262d;
+            color: #58a6ff;
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .upload-label:hover {
+            background-color: #30363d;
+        }
+
+        /* 图片预览区域 */
+        #image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            margin-top: 20px;
+            display: none; /* 初始隐藏，上传后显示 */
+            border-radius: 4px;
+            border: 2px solid #30363d;
+        }
+
+        .image-wrapper {
+            position: relative;
+            display: inline-block;
+            margin-top: 20px;
+        }
+
+        #scanline {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, rgba(88,166,255,0.1), rgba(88,166,255,0.95), rgba(88,166,255,0.1));
+            box-shadow: 0 0 10px rgba(88,166,255,0.8);
+            left: 0;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        /* 右侧：数据解码区域 */
+        .data-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 数据块（Metadata 和 Parameters） */
+        .data-block {
+            background-color: #161b22;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+        }
+        .data-block h3 {
+            margin-top: 0;
+            color: #58a6ff;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 10px;
+        }
+        .data-item {
+            margin-bottom: 10px;
+            display: flex;
+        }
+        .data-key {
+            color: #8b949e;
+            width: 120px;
+            flex-shrink: 0;
+        }
+        .data-value {
+            color: white;
+            word-wrap: break-word; /* 防止长文字撑破界面 */
+        }
+        
+        /* 参数区域特别样式：模拟 JSON 格式显示 */
+        #param-output {
+            color: #a5d6ff;
+            background-color: #0d1117;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap; /* 保持格式 */
+        }
+
+        /* 可折叠思路展示区 */
+        #reasoning-details {
+            margin-top: 8px;
+        }
+        #reasoning-details summary {
+            cursor: pointer;
+            color: #58a6ff;
+            font-weight: bold;
+            user-select: none;
+        }
+        #reasoning-output {
+            margin-top: 10px;
+            color: #d2e6ff;
+            background-color: #0d1117;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <div class="display-panel">
+            <label for="file-input" class="upload-label">Upload Collection Photo</label>
+            <input type="file" id="file-input" accept="image/*">
+            <div class="image-wrapper" id="image-wrapper">
+                <img id="image-preview" src="" alt="Collection Preview">
+                <div id="scanline"></div>
+            </div>
+        </div>
+
+        <!-- 酷炫播放按钮 -->
+        <button id="play-btn" class="engage-btn" disabled>|| ENGAGE_SEQUENCER ||</button>
+        <style>
+            .engage-btn {
+                background-color: #4f46e5; /* 致敬参考项目的蓝紫色 */
+                color: white;
+                border: none;
+                padding: 15px;
+                font-size: 1.2rem;
+                font-weight: bold;
+                letter-spacing: 2px;
+                border-radius: 4px;
+                cursor: pointer;
+                margin-top: 10px;
+                transition: background-color 0.2s;
+            }
+            .engage-btn:hover { background-color: #4338ca; }
+            .engage-btn:disabled { background-color: #30363d; color: #8b949e; cursor: not-allowed; }
+        </style>
+
+        <div class="data-panel">
+            
+            <div class="data-block" id="metadata-block">
+                <h3>1. Collection Archive (Metadata)</h3>
+                <div id="metadata-content">
+                    Waiting for upload...
+                </div>
+            </div>
+
+            <div class="data-block" id="param-block">
+                <h3>2. Skeleton Params</h3>
+                <div id="param-output">
+Waiting for upload...
+                </div>
+            </div>
+
+            <div class="data-block" id="reasoning-block">
+                <h3>3. AI Design Ideas (Summary)</h3>
+                <details id="reasoning-details">
+                    <summary>Click to Expand / Collapse</summary>
+                    <div id="reasoning-output">Waiting for upload...</div>
+                </details>
+            </div>
+
+        </div>
+
+    </div>
+    <script>
+        // 这里是 JavaScript：负责业务逻辑和规则设定
+
+        // ========== OpenAI参数生成系统提示 ==========
+        const SYSTEM_PROMPT = `
+    You are a senior museum sound interaction designer and synesthesia artist.
+    Your task is to read museum collection metadata (era, material, culture, description) and transform it into parameters for an electronic music synthesizer in Tone.js.
+    Return a JSON object that strictly follows this schema:
+    {
+        "bpm": [integer, range 40-160. Older or more solemn objects should generally be slower; more modern or lively objects faster],
+        "scale": [string, choose the scale that best fits the culture, such as "pentatonic", "minor", "major", "chromatic"],
+        "synth_type": [string, waveform mapped from material. Must be one of: "sine", "square", "triangle", "sawtooth"],
+        "reverb_size": [float, range 0.1-1.0. Older objects or imagery with stronger spatial atmosphere should generally have larger reverb],
+        "rhythm_density": [string. Must be one of: "sparse", "moderate", "dense"],
+        "register": [string. Must be one of: "low", "mid", "high"],
+        "reasoning_summary": [string. Write 2-4 sentences in English summarizing the design rationale. Explain how era, material, culture, or image atmosphere influenced the mapping. Do not provide chain-of-thought.]
+    }
+    If the uploaded photo does not exist in the metadata database, you must directly analyze the image content (color, material, pattern, composition, atmosphere) and generate the same JSON structure.
+    Output only a pure JSON object in English, with no explanatory text and no Markdown code fences.
+    `;
+
+        // 1. 获取网页上的元素 (获取“数字器官”)
+        const fileInput = document.getElementById('file-input');
+        const imagePreview = document.getElementById('image-preview');
+        const metadataContent = document.getElementById('metadata-content');
+        const paramOutput = document.getElementById('param-output');
+        const reasoningOutput = document.getElementById('reasoning-output');
+        const reasoningDetails = document.getElementById('reasoning-details');
+        const scanline = document.getElementById('scanline');
+
+        const MELODY_STEP_COUNT = 64;
+        const PLAYBACK_SPEED_MULTIPLIER = 1.12;
+
+        // Playback state
+        const playBtn = document.getElementById('play-btn');
+        let currentParams = null;
+        let currentMetadata = null;
+
+        const audioEngine = {
+            reverb: null,
+            mainSynth: null,
+            mainFilter: null,
+            mainPan: null,
+            melodySequence: null,
+            droneSynth: null,
+            droneFilter: null,
+            droneGain: null,
+            droneLoop: null,
+            textureSynth: null,
+            textureLoop: null,
+            stepData: [],
+            notePool: [],
+            baseStepEvents: [],
+            macroRegions: [],
+            loopIndex: 0,
+            lastMelodyStepIndex: -1,
+            lastBrightness: 0.5
+        };
+
+        // 2. 加载本地 JSON 数据库 (核心数据源)
+        // 用 fetch 读取本地 database.json 文件（需用本地服务器访问页面）
+        let database = [];
+        fetch('database.json')
+            .then(response => response.json())
+            .then(data => {
+                database = data;
+            })
+            .catch(error => {
+                metadataContent.innerHTML = `<div class='data-value' style='color:red'>Failed to load database: ${error}</div>`;
+            });
+
+        // 3. 监听上传按钮的“变化（change）”事件
+        fileInput.addEventListener('change', async (event) => {
+            // 获取用户上传的第一个文件
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // --- A. 预览图片 ---
+            const imageUrl = URL.createObjectURL(file);
+            imagePreview.src = imageUrl;
+            imagePreview.style.display = 'block';
+
+            // --- B. 核心逻辑：匹配 Metadata ---
+            const uploadedFileName = file.name;
+            const matchedItem = database.find(item => item.image_path.includes(uploadedFileName));
+
+            if (matchedItem) {
+                // --- 匹配成功：显示数据 ---
+                displayMetadata(matchedItem);
+                currentMetadata = matchedItem.metadata;
+
+                // 进入 Loading 状态
+                paramOutput.innerHTML = 'Generating sound parameters with AI...';
+                reasoningOutput.innerHTML = 'Generating design summary...';
+                reasoningDetails.open = false;
+                playBtn.disabled = true;
+                stopPlayback();
+                disposeAudioEngine();
+                resetScanline();
+                hideScanline();
+
+                // --- C. 调用 OpenAI API 生成音乐参数 ---
+                try {
+                    const result = await fetchGPTParams(matchedItem.metadata);
+                    currentParams = result.params;
+                    paramOutput.innerHTML = JSON.stringify(currentParams, null, 2);
+                    reasoningOutput.innerHTML = result.reasoning;
+                    playBtn.disabled = false;
+                    playBtn.innerText = "|| ENGAGE_SEQUENCER ||";
+                } catch (error) {
+                    paramOutput.innerHTML = `<span style="color:red">Failed to generate AI parameters: ${error.message}</span>`;
+                    reasoningOutput.innerHTML = `<span style="color:red">Failed to generate design summary: ${error.message}</span>`;
+                }
+            } else {
+                // --- 未匹配数据库：直接分析图片生成参数 ---
+                metadataContent.innerHTML = "<div class='data-value' style='color:#f2cc60'>No database match found. The image will be analyzed directly to generate sound parameters.</div>";
+                currentMetadata = null;
+                paramOutput.innerHTML = "Analyzing image content and generating sound parameters...";
+                reasoningOutput.innerHTML = 'Generating design summary from the image...';
+                reasoningDetails.open = false;
+                playBtn.disabled = true;
+                stopPlayback();
+                disposeAudioEngine();
+                resetScanline();
+                hideScanline();
+
+                try {
+                    const result = await fetchGPTParamsFromImage(file);
+                    currentParams = result.params;
+                    paramOutput.innerHTML = JSON.stringify(currentParams, null, 2);
+                    reasoningOutput.innerHTML = result.reasoning;
+                    playBtn.disabled = false;
+                    playBtn.innerText = "|| ENGAGE_SEQUENCER ||";
+                } catch (error) {
+                    paramOutput.innerHTML = `<span style="color:red">Image analysis failed: ${error.message}</span>`;
+                    reasoningOutput.innerHTML = `<span style="color:red">Failed to generate design summary: ${error.message}</span>`;
+                }
+            }
+        });
+
+        // ==========================================
+        // 辅助函数：负责在网页上排版 Metadata
+        // ==========================================
+        function displayMetadata(item) {
+            let html = '';
+            
+            // 标题
+            html += `<div class="data-item">
+                        <div class="data-key">Title:</div>
+                        <div class="data-value">${item.name}</div>
+                     </div>`;
+            
+            // 循环遍历 metadata 里面的每一项 (era, material, function, description)
+            for (let key in item.metadata) {
+                html += `<div class="data-item">
+                            <div class="data-key">${key}:</div>
+                            <div class="data-value">${item.metadata[key]}</div>
+                         </div>`;
+            }
+            
+            metadataContent.innerHTML = html;
+        }
+
+        // ==========================================
+        // Parameter mapping helpers
+        // ==========================================
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
+        }
+
+        function getScaleNotes(scale, register) {
+            const scaleMap = {
+                major: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
+                minor: ['C', 'D', 'Eb', 'F', 'G', 'Ab', 'Bb'],
+                pentatonic: ['C', 'D', 'E', 'G', 'A'],
+                chromatic: ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+            };
+
+            const registerMap = {
+                low: [2, 4],
+                mid: [3, 5],
+                high: [4, 6]
+            };
+
+            const noteNames = scaleMap[scale] || scaleMap.pentatonic;
+            const [startOctave, endOctave] = registerMap[register] || registerMap.mid;
+            const notes = [];
+
+            for (let octave = startOctave; octave <= endOctave; octave += 1) {
+                for (const noteName of noteNames) {
+                    notes.push(`${noteName}${octave}`);
+                }
+            }
+
+            return notes;
+        }
+
+        function getSequenceInterval(rhythmDensity) {
+            const map = {
+                sparse: '4n',
+                moderate: '8n',
+                dense: '16n'
+            };
+            return map[rhythmDensity] || '8n';
+        }
+
+        function createMainSynth(synthType) {
+            const synthPresets = {
+                sine: {
+                    oscillator: { type: 'sine' },
+                    envelope: { attack: 0.08, decay: 0.25, sustain: 0.35, release: 1.6 }
+                },
+                triangle: {
+                    oscillator: { type: 'triangle' },
+                    envelope: { attack: 0.05, decay: 0.2, sustain: 0.3, release: 1.2 }
+                },
+                square: {
+                    oscillator: { type: 'square' },
+                    envelope: { attack: 0.01, decay: 0.14, sustain: 0.22, release: 1.0 }
+                },
+                sawtooth: {
+                    oscillator: { type: 'sawtooth' },
+                    envelope: { attack: 0.01, decay: 0.12, sustain: 0.25, release: 0.95 }
+                }
+            };
+
+            const config = synthPresets[synthType] || synthPresets.triangle;
+            const synth = new Tone.Synth(config);
+            synth.volume.value = -7;
+            return synth;
+        }
+
+        function createReverb(reverbSize) {
+            const normalized = Number.isFinite(Number(reverbSize)) ? clamp(Number(reverbSize), 0.1, 1.0) : 0.5;
+            const decay = 1.5 + normalized * 4.5;
+            return new Tone.Reverb({ decay, wet: 0.45 }).toDestination();
+        }
+
+        // ==========================================
+        // Image analysis helpers
+        // ==========================================
+        function analyzeImageToSteps(imageElement, stepCount = MELODY_STEP_COUNT) {
+            const steps = stepCount;
+
+            if (!imageElement || !imageElement.naturalWidth || !imageElement.naturalHeight) {
+                return Array.from({ length: steps }, () => ({ brightness: 0.5, contrast: 0.1 }));
+            }
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            canvas.width = 160;
+            canvas.height = 160;
+            ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
+
+            const sliceWidth = canvas.width / steps;
+            const stepData = [];
+
+            for (let i = 0; i < steps; i += 1) {
+                const x = Math.floor(i * sliceWidth);
+                const w = Math.max(1, Math.floor(sliceWidth));
+                const imageData = ctx.getImageData(x, 0, w, canvas.height).data;
+
+                const brightnessSamples = [];
+                for (let p = 0; p < imageData.length; p += 4) {
+                    const r = imageData[p];
+                    const g = imageData[p + 1];
+                    const b = imageData[p + 2];
+                    const brightness = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+                    brightnessSamples.push(brightness);
+                }
+
+                const avgBrightness = brightnessSamples.reduce((sum, value) => sum + value, 0) / brightnessSamples.length;
+                const variance = brightnessSamples.reduce((sum, value) => {
+                    const diff = value - avgBrightness;
+                    return sum + diff * diff;
+                }, 0) / brightnessSamples.length;
+                const contrast = Math.sqrt(variance);
+
+                stepData.push({ brightness: avgBrightness, contrast });
+            }
+
+            return stepData;
+        }
+
+        function analyzeMacroRegions(stepData, regionCount = 4) {
+            if (!stepData.length) {
+                return Array.from({ length: regionCount }, () => ({ brightness: 0.5, contrast: 0.1 }));
+            }
+
+            const regionSize = Math.ceil(stepData.length / regionCount);
+            const regions = [];
+
+            for (let regionIndex = 0; regionIndex < regionCount; regionIndex += 1) {
+                const start = regionIndex * regionSize;
+                const end = Math.min(stepData.length, start + regionSize);
+                const slice = stepData.slice(start, end);
+
+                if (!slice.length) {
+                    regions.push({ brightness: 0.5, contrast: 0.1 });
+                    continue;
+                }
+
+                const brightness = slice.reduce((sum, s) => sum + s.brightness, 0) / slice.length;
+                const contrast = slice.reduce((sum, s) => sum + s.contrast, 0) / slice.length;
+                regions.push({ brightness, contrast });
+            }
+
+            return regions;
+        }
+
+        // ==========================================
+        // Sequence-building helpers
+        // ==========================================
+        function mapStepsToMelody(stepData, notePool) {
+            const usableNotes = notePool.length ? notePool : ['C4', 'D4', 'E4', 'G4', 'A4'];
+
+            return stepData.map((step, index) => {
+                if (step.brightness < 0.12) {
+                    return null;
+                }
+
+                const noteIndex = Math.floor(clamp(step.brightness, 0, 1) * (usableNotes.length - 1));
+                const velocity = clamp(0.35 + step.contrast * 1.6, 0.25, 0.95);
+                const previous = stepData[Math.max(0, index - 1)] || step;
+                const delta = Math.abs(step.brightness - previous.brightness);
+                const significant = delta > 0.08 || step.contrast > 0.22;
+
+                return {
+                    note: usableNotes[noteIndex],
+                    velocity,
+                    brightness: step.brightness,
+                    contrast: step.contrast,
+                    significant
+                };
+            });
+        }
+
+        function humanizeStepEvents(stepEvents, loopIndex, notePool) {
+            const varianceAmount = Math.min(0.04 + loopIndex * 0.002, 0.08);
+            const varied = stepEvents.map((step, index) => {
+                if (!step) return null;
+
+                const velocityJitter = (Math.random() * 2 - 1) * varianceAmount;
+                let nextVelocity = clamp(step.velocity + velocityJitter, 0.2, 0.98);
+                let nextNote = step.note;
+
+                // Occasional subtle scale-degree shift.
+                if ((index + loopIndex) % 23 === 0 && Math.random() < 0.45) {
+                    const noteIdx = notePool.indexOf(step.note);
+                    if (noteIdx >= 0) {
+                        const shift = Math.random() < 0.5 ? -1 : 1;
+                        const shifted = clamp(noteIdx + shift, 0, notePool.length - 1);
+                        nextNote = notePool[shifted];
+                    }
+                }
+
+                // Rarely skip non-critical notes to avoid obvious looping.
+                if (step.velocity < 0.5 && (index + loopIndex * 3) % 29 === 0 && Math.random() < 0.25) {
+                    return null;
+                }
+
+                return {
+                    note: nextNote,
+                    velocity: nextVelocity
+                };
+            });
+
+            return varied;
+        }
+
+        function buildScanSequence(stepEvents, synth, interval, onStep, notePool) {
+            const stepIndices = Array.from({ length: stepEvents.length }, (_, index) => index);
+            let loopIndex = 0;
+            let activeEvents = humanizeStepEvents(stepEvents, loopIndex, notePool);
+
+            const sequence = new Tone.Sequence((time, stepIndex) => {
+                if (stepIndex === 0 && Tone.Transport.state === 'started' && Tone.Transport.seconds > 0) {
+                    loopIndex += 1;
+                    activeEvents = humanizeStepEvents(stepEvents, loopIndex, notePool);
+                }
+
+                const stepEvent = activeEvents[stepIndex] || null;
+                const stepsSinceLast = stepIndex - audioEngine.lastMelodyStepIndex;
+                const reachedInterval = stepsSinceLast >= 3 || audioEngine.lastMelodyStepIndex < 0;
+                const canTrigger = stepEvent && (stepEvent.significant || reachedInterval);
+
+                if (canTrigger) {
+                    synth.triggerAttackRelease(stepEvent.note, '16n', time, stepEvent.velocity);
+                    audioEngine.lastMelodyStepIndex = stepIndex;
+                }
+
+                if (onStep) {
+                    onStep(stepIndex, stepEvent, loopIndex);
+                }
+
+                if (stepIndex === stepEvents.length - 1) {
+                    audioEngine.lastMelodyStepIndex = -1;
+                }
+            }, stepIndices, interval);
+
+            sequence.start(0);
+            return sequence;
+        }
+
+        // ==========================================
+        // Layer creation helpers
+        // ==========================================
+        function createDroneLayer(profile, notePool, reverb, macroRegions) {
+            const droneSynth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: 'sine' },
+                envelope: { attack: 1.1, decay: 0.25, sustain: 0.92, release: 3.2 }
+            }).connect(reverb);
+            droneSynth.volume.value = -12;
+
+            const droneFilter = new Tone.Filter({
+                type: 'lowpass',
+                frequency: 420,
+                rolloff: -24
+            });
+            const droneGain = new Tone.Gain(0.9);
+            droneSynth.disconnect();
+            droneSynth.connect(droneFilter);
+            droneFilter.connect(droneGain);
+            droneGain.connect(reverb);
+
+            const sourceNotes = notePool.length ? notePool : ['C2', 'G2', 'C3'];
+            const lowCount = Math.max(2, Math.floor(sourceNotes.length * 0.3));
+            const droneNotes = sourceNotes.slice(0, lowCount);
+
+            let macroIndex = 0;
+            const droneLoop = new Tone.Loop((time) => {
+                const region = macroRegions[macroIndex % macroRegions.length] || { brightness: 0.5, contrast: 0.1 };
+                const baseIndex = Math.floor(region.brightness * Math.max(1, droneNotes.length - 1));
+                const supportIndex = clamp(baseIndex + (region.contrast > 0.18 ? 2 : 1), 0, droneNotes.length - 1);
+
+                const root = droneNotes[baseIndex] || droneNotes[0] || 'C2';
+                const support = droneNotes[supportIndex] || droneNotes[Math.min(2, droneNotes.length - 1)] || 'G2';
+                const velocity = clamp(0.28 + region.contrast * 0.4, 0.25, 0.5);
+
+                droneFilter.frequency.rampTo(280 + region.brightness * 620, 1.2);
+                droneGain.gain.rampTo(clamp(0.78 + region.contrast * 0.4, 0.75, 1.0), 1.0);
+
+                droneSynth.triggerAttackRelease([root, support], '1m', time, velocity);
+                macroIndex += 1;
+            }, '1m');
+            droneLoop.start(0);
+
+            return { droneSynth, droneLoop, droneFilter, droneGain };
+        }
+
+        function createTextureLayer(profile, artifactMetadata, reverb, stepData) {
+            const material = (artifactMetadata?.material || '').toLowerCase();
+            const isMetal = /metal|bronze|iron|steel/.test(material);
+            const isHard = /bone|wood|stone|rock|ceramic/.test(material);
+
+            let textureSynth;
+            if (isMetal) {
+                textureSynth = new Tone.MetalSynth({
+                    frequency: 120,
+                    envelope: { attack: 0.001, decay: 0.2, release: 0.08 },
+                    harmonicity: 3.1,
+                    modulationIndex: 16,
+                    resonance: 3000,
+                    octaves: 1.5
+                }).connect(reverb);
+                textureSynth.volume.value = -24;
+            } else if (isHard) {
+                textureSynth = new Tone.MembraneSynth({
+                    pitchDecay: 0.02,
+                    octaves: 2,
+                    envelope: { attack: 0.001, decay: 0.25, sustain: 0.01, release: 0.2 }
+                }).connect(reverb);
+                textureSynth.volume.value = -22;
+            } else {
+                textureSynth = new Tone.NoiseSynth({
+                    noise: { type: 'pink' },
+                    envelope: { attack: 0.01, decay: 0.12, sustain: 0.0, release: 0.2 }
+                }).connect(reverb);
+                textureSynth.volume.value = -26;
+            }
+
+            let stepIndex = 0;
+            const textureLoop = new Tone.Loop((time) => {
+                const step = stepData[stepIndex % stepData.length] || { brightness: 0.5, contrast: 0.1 };
+                const shouldTrigger = step.contrast > 0.26 || stepIndex % 12 === 0;
+
+                if (shouldTrigger) {
+                    const velocity = clamp(0.18 + step.contrast, 0.15, 0.5);
+                    if (textureSynth instanceof Tone.NoiseSynth) {
+                        textureSynth.triggerAttackRelease('16n', time, velocity);
+                    } else if (textureSynth instanceof Tone.MetalSynth) {
+                        textureSynth.triggerAttackRelease('16n', time, velocity);
+                    } else {
+                        textureSynth.triggerAttackRelease('C2', '16n', time, velocity);
+                    }
+                }
+
+                stepIndex += 1;
+            }, '2n');
+            textureLoop.start(0);
+
+            return { textureSynth, textureLoop };
+        }
+
+        // ==========================================
+        // Playback lifecycle helpers
+        // ==========================================
+        function stopPlayback() {
+            Tone.Transport.stop();
+            Tone.Transport.position = 0;
+            playBtn.innerText = '|| ENGAGE_SEQUENCER ||';
+            resetScanline();
+            hideScanline();
+        }
+
+        function disposeAudioEngine() {
+            if (audioEngine.melodySequence) {
+                audioEngine.melodySequence.stop(0);
+                audioEngine.melodySequence.dispose();
+                audioEngine.melodySequence = null;
+            }
+
+            if (audioEngine.droneLoop) {
+                audioEngine.droneLoop.stop(0);
+                audioEngine.droneLoop.dispose();
+                audioEngine.droneLoop = null;
+            }
+
+            if (audioEngine.textureLoop) {
+                audioEngine.textureLoop.stop(0);
+                audioEngine.textureLoop.dispose();
+                audioEngine.textureLoop = null;
+            }
+
+            if (audioEngine.mainSynth) {
+                audioEngine.mainSynth.dispose();
+                audioEngine.mainSynth = null;
+            }
+
+            if (audioEngine.mainFilter) {
+                audioEngine.mainFilter.dispose();
+                audioEngine.mainFilter = null;
+            }
+
+            if (audioEngine.mainPan) {
+                audioEngine.mainPan.dispose();
+                audioEngine.mainPan = null;
+            }
+
+            if (audioEngine.droneSynth) {
+                audioEngine.droneSynth.dispose();
+                audioEngine.droneSynth = null;
+            }
+
+            if (audioEngine.droneFilter) {
+                audioEngine.droneFilter.dispose();
+                audioEngine.droneFilter = null;
+            }
+
+            if (audioEngine.droneGain) {
+                audioEngine.droneGain.dispose();
+                audioEngine.droneGain = null;
+            }
+
+            if (audioEngine.textureSynth) {
+                audioEngine.textureSynth.dispose();
+                audioEngine.textureSynth = null;
+            }
+
+            if (audioEngine.reverb) {
+                audioEngine.reverb.dispose();
+                audioEngine.reverb = null;
+            }
+
+            audioEngine.stepData = [];
+            audioEngine.notePool = [];
+            audioEngine.baseStepEvents = [];
+            audioEngine.macroRegions = [];
+            audioEngine.loopIndex = 0;
+            audioEngine.lastMelodyStepIndex = -1;
+            audioEngine.lastBrightness = 0.5;
+            Tone.Transport.cancel(0);
+        }
+
+        function showScanline() {
+            scanline.style.opacity = '1';
+        }
+
+        function hideScanline() {
+            scanline.style.opacity = '0';
+        }
+
+        function resetScanline() {
+            scanline.style.left = '0%';
+        }
+
+        function updateScanline(stepIndex, totalSteps) {
+            if (!totalSteps || totalSteps < 2) {
+                scanline.style.left = '0%';
+                return;
+            }
+            const progress = stepIndex / (totalSteps - 1);
+            scanline.style.left = `${progress * 100}%`;
+        }
+
+        function buildAudioEngine(profile, imageElement, metadata) {
+            disposeAudioEngine();
+
+            const baseBpm = Number(profile.bpm) || 80;
+            Tone.Transport.bpm.value = clamp(baseBpm * PLAYBACK_SPEED_MULTIPLIER, 48, 200);
+
+            const notePool = getScaleNotes(profile.scale, profile.register);
+            const sequenceInterval = getSequenceInterval(profile.rhythm_density);
+            const stepData = analyzeImageToSteps(imageElement, MELODY_STEP_COUNT);
+            const stepEvents = mapStepsToMelody(stepData, notePool);
+            const macroRegions = analyzeMacroRegions(stepData, 4);
+
+            const reverb = createReverb(profile.reverb_size);
+            const mainFilter = new Tone.Filter({ type: 'lowpass', frequency: 1100, rolloff: -24 });
+            const mainPan = new Tone.Panner(0);
+            const mainSynth = createMainSynth(profile.synth_type);
+            mainSynth.connect(mainFilter);
+            mainFilter.connect(mainPan);
+            mainPan.connect(reverb);
+            const melodySequence = buildScanSequence(
+                stepEvents,
+                mainSynth,
+                sequenceInterval,
+                (stepIndex, _stepEvent, loopIndex) => {
+                    audioEngine.loopIndex = loopIndex;
+                    const step = stepData[stepIndex] || { brightness: 0.5, contrast: 0.1 };
+                    const brightness = step.brightness;
+                    const contrast = step.contrast;
+
+                    // Smooth continuous parameter changes, separate from note triggering.
+                    mainFilter.frequency.rampTo(320 + brightness * 3200, 0.12);
+                    mainPan.pan.rampTo((brightness - 0.5) * 0.6, 0.16);
+                    reverb.wet.rampTo(clamp(0.18 + contrast * 0.9, 0.2, 0.75), 0.2);
+
+                    updateScanline(stepIndex, stepEvents.length);
+                },
+                notePool
+            );
+
+            const { droneSynth, droneLoop, droneFilter, droneGain } = createDroneLayer(profile, notePool, reverb, macroRegions);
+            const { textureSynth, textureLoop } = createTextureLayer(profile, metadata, reverb, stepData);
+
+            audioEngine.reverb = reverb;
+            audioEngine.mainSynth = mainSynth;
+            audioEngine.mainFilter = mainFilter;
+            audioEngine.mainPan = mainPan;
+            audioEngine.melodySequence = melodySequence;
+            audioEngine.droneSynth = droneSynth;
+            audioEngine.droneFilter = droneFilter;
+            audioEngine.droneGain = droneGain;
+            audioEngine.droneLoop = droneLoop;
+            audioEngine.textureSynth = textureSynth;
+            audioEngine.textureLoop = textureLoop;
+            audioEngine.stepData = stepData;
+            audioEngine.notePool = notePool;
+            audioEngine.baseStepEvents = stepEvents;
+            audioEngine.macroRegions = macroRegions;
+            audioEngine.loopIndex = 0;
+
+            resetScanline();
+        }
+
+        async function startPlayback() {
+            await Tone.start();
+            showScanline();
+            Tone.Transport.start();
+            playBtn.innerText = '[ PLAYING ]';
+        }
+
+
+        // ===============================
+        // 调用后端 API 生成音乐参数（后端从 .env 读取 OpenAI Key）
+        // ===============================
+        async function fetchGPTParams(metadata) {
+            const response = await fetch('/api/generate-from-metadata', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    metadata,
+                    systemPrompt: SYSTEM_PROMPT
+                })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error?.message || `HTTP ${response.status}`);
+            }
+
+            return response.json();
+        }
+
+        // 图片转 Data URL，供视觉模型读取
+        function fileToDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error('Failed to read image file.'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 当数据库未匹配时，直接根据图片内容生成参数
+        async function fetchGPTParamsFromImage(file) {
+            const imageDataUrl = await fileToDataURL(file);
+            const response = await fetch('/api/generate-from-image', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    imageDataUrl,
+                    systemPrompt: SYSTEM_PROMPT
+                })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error?.message || `HTTP ${response.status}`);
+            }
+
+            return response.json();
+        }
+
+        // ===============================
+        // 播放按钮点击事件：参数转声音
+        // ===============================
+        playBtn.addEventListener('click', async () => {
+            if (!currentParams) return;
+
+            if (Tone.Transport.state === 'started') {
+                stopPlayback();
+                return;
+            }
+
+            playBtn.innerText = '[ SYNTHESIZING... ]';
+
+            try {
+                buildAudioEngine(currentParams, imagePreview, currentMetadata);
+                await startPlayback();
+            } catch (error) {
+                playBtn.innerText = '|| ENGAGE_SEQUENCER ||';
+                paramOutput.innerHTML = `<span style="color:red">Audio engine build failed: ${error.message}</span>`;
+            }
+        });
+
+    </script>
+    </body>
+</html>

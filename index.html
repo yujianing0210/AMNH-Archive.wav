@@ -1,0 +1,2012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Collection Sound Decoder - Phase 1 Prototype</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        :root {
+            --bg: #070b12;
+            --panel: #101826;
+            --panel-2: #0b1320;
+            --text: #d9e5ff;
+            --muted: #8ea2c9;
+            --line: #273956;
+            --accent: #5554e8;
+            --accent-2: #4da2ff;
+            --ok: #6cf0b2;
+            --warn: #f2cc60;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: radial-gradient(circle at 20% 10%, #101b2f 0%, #070b12 45%, #05070c 100%);
+            color: var(--text);
+            font-family: 'Courier New', Courier, monospace;
+            padding: 18px;
+        }
+
+        .phone-frame {
+            width: min(420px, 100%);
+            height: min(860px, calc(100vh - 36px));
+            border: 3px solid #02040a;
+            border-radius: 28px;
+            background: #02040a;
+            padding: 10px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+        }
+
+        .app {
+            height: 100%;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 2px solid #141f33;
+            background: linear-gradient(180deg, #0f1828 0%, #0a1220 100%);
+            display: grid;
+            grid-template-rows: 56px 1fr 70px;
+        }
+
+        .app-header {
+            border-bottom: 1px solid var(--line);
+            display: grid;
+            grid-template-columns: 40px 1fr 40px;
+            align-items: center;
+            gap: 8px;
+            padding: 0 10px;
+            background: #0b1220;
+        }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--line);
+            background: #111b2d;
+            color: var(--accent-2);
+            font-weight: bold;
+            border-radius: 6px;
+        }
+
+        .app-title {
+            text-align: center;
+            color: #b8ccff;
+            font-weight: bold;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        .screens {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .screen {
+            position: absolute;
+            inset: 0;
+            overflow-y: auto;
+            padding: 12px;
+            display: none;
+            gap: 10px;
+            background: transparent;
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .panel-title {
+            margin: 0 0 8px;
+            color: var(--accent-2);
+            font-size: 13px;
+            letter-spacing: 0.8px;
+            border-bottom: 1px solid var(--line);
+            padding-bottom: 6px;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .mode-toggle {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .mode-btn {
+            background: #0e1727;
+            color: var(--muted);
+            border: 0;
+            padding: 8px;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 0.6px;
+        }
+
+        .mode-btn.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .viewport {
+            position: relative;
+            background: #07101d;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            min-height: 210px;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+        }
+
+        #image-placeholder {
+            color: var(--muted);
+            font-size: 12px;
+            letter-spacing: 0.8px;
+        }
+
+        .image-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: grid;
+            place-items: center;
+        }
+
+        #image-preview,
+        #params-image-preview {
+            max-width: 100%;
+            max-height: 260px;
+            display: none;
+            border: 1px solid #405d8a;
+        }
+
+        #scanline,
+        #params-scanline {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, rgba(88,166,255,0.1), rgba(88,166,255,0.95), rgba(88,166,255,0.1));
+            box-shadow: 0 0 10px rgba(88,166,255,0.8);
+            left: 0;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        #params-scanline {
+            background: linear-gradient(to bottom, rgba(88,166,255,0.04), rgba(88,166,255,0.38), rgba(88,166,255,0.04));
+            box-shadow: 0 0 4px rgba(88,166,255,0.28);
+        }
+
+        #scan-progress,
+        #params-scan-progress {
+            position: absolute;
+            right: 8px;
+            top: 8px;
+            font-size: 10px;
+            color: #b4c9ff;
+            background: rgba(8, 14, 24, 0.7);
+            border: 1px solid #294675;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .log-panel {
+            background: #070f1b;
+        }
+
+        #system-log-list {
+            margin: 0;
+            padding-left: 16px;
+            max-height: 88px;
+            overflow-y: auto;
+            font-size: 11px;
+            color: #9ac0ff;
+            line-height: 1.4;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 112px 1fr;
+            gap: 4px 8px;
+            font-size: 12px;
+            word-break: break-word;
+        }
+
+        .summary-label {
+            color: var(--muted);
+        }
+
+        .source-badge {
+            display: inline-block;
+            padding: 3px 7px;
+            border-radius: 999px;
+            border: 1px solid #355781;
+            font-size: 10px;
+            letter-spacing: 0.5px;
+            font-weight: bold;
+            color: #b4dbff;
+            background: #0c1a2f;
+        }
+
+        .source-badge.ai {
+            border-color: #7468cf;
+            color: #d8d0ff;
+            background: #181633;
+        }
+
+        .actions {
+            display: grid;
+            gap: 8px;
+        }
+
+        .action-btn {
+            width: 100%;
+            border: 1px solid var(--line);
+            background: #101a2c;
+            color: #d2e3ff;
+            padding: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 0.8px;
+            border-radius: 8px;
+        }
+
+        .action-btn.primary {
+            background: var(--accent);
+            border-color: #7270ff;
+            color: #fff;
+        }
+
+        .action-btn.active {
+            background: #a53f5e;
+            border-color: #d87390;
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .param-rows {
+            display: grid;
+            gap: 6px;
+        }
+
+        .weight-controls {
+            display: grid;
+            gap: 8px;
+        }
+
+        .weight-row {
+            display: grid;
+            grid-template-columns: 1fr 64px;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .weight-row label {
+            display: grid;
+            gap: 4px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .weight-row input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+        }
+
+        .weight-value {
+            text-align: right;
+            color: #dbe8ff;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .param-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            font-size: 12px;
+            border-bottom: 1px dashed #24344e;
+            padding-bottom: 4px;
+        }
+
+        .param-row span:first-child {
+            color: var(--muted);
+        }
+
+        #param-output,
+        #reasoning-output,
+        #metadata-content {
+            color: #a5d6ff;
+            background-color: #0d1117;
+            padding: 10px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            border: 1px solid #203047;
+            font-size: 11px;
+            line-height: 1.45;
+        }
+
+        #reasoning-details summary {
+            cursor: pointer;
+            color: #8ec5ff;
+            font-weight: bold;
+        }
+
+        .library-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            color: var(--accent-2);
+            font-weight: bold;
+            letter-spacing: 0.8px;
+        }
+
+        .library-card {
+            display: grid;
+            grid-template-columns: 62px 1fr;
+            gap: 10px;
+            background: #0d1626;
+            border: 1px solid #273956;
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        .library-thumb {
+            width: 62px;
+            height: 62px;
+            object-fit: cover;
+            border: 1px solid #39567f;
+            border-radius: 4px;
+            background: #08101a;
+        }
+
+        .library-meta {
+            font-size: 11px;
+            display: grid;
+            gap: 4px;
+        }
+
+        .library-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .mini-btn {
+            border: 1px solid #294675;
+            background: #0c1829;
+            color: #b7d6ff;
+            border-radius: 6px;
+            padding: 4px 6px;
+            font-size: 10px;
+        }
+
+        .empty-library {
+            border: 1px dashed #314767;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .tab-bar {
+            border-top: 1px solid var(--line);
+            background: #0b1220;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .tab-btn {
+            border: 1px solid var(--line);
+            background: #101a2b;
+            color: #9fb6df;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 0.7px;
+            display: grid;
+            place-items: center;
+            gap: 2px;
+            padding: 5px 0;
+        }
+
+        .tab-btn.active {
+            border-color: #7a7bff;
+            background: #272f70;
+            color: #fff;
+        }
+
+        @media (max-width: 520px) {
+            .phone-frame {
+                width: 100%;
+                height: calc(100vh - 20px);
+                border-radius: 20px;
+                padding: 6px;
+            }
+
+            .app {
+                border-radius: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <div class="app">
+            <header class="app-header">
+                <button class="icon-btn" type="button">≡</button>
+                <div class="app-title">[ MUSEUM_SONIC_ARCHIVE ]</div>
+                <button class="icon-btn" type="button">i</button>
+            </header>
+
+            <main class="screens">
+                <section class="screen active" id="camera-screen">
+                    <div class="mode-toggle panel">
+                        <button class="mode-btn">LIVE CAMERA</button>
+                        <button class="mode-btn active">STATIC UPLOAD</button>
+                    </div>
+
+                    <div class="panel">
+                        <h3 class="panel-title">IMAGE VIEWPORT</h3>
+                        <div class="viewport" id="image-wrapper">
+                            <div id="image-placeholder">NO IMAGE LOADED</div>
+                            <div class="image-wrapper">
+                                <img id="image-preview" src="" alt="Collection Preview">
+                                <div id="scanline"></div>
+                            </div>
+                            <div id="scan-progress">STEP 0 / 64</div>
+                        </div>
+                    </div>
+
+                    <div class="panel log-panel">
+                        <h3 class="panel-title">SYSTEM LOG</h3>
+                        <ul id="system-log-list"></ul>
+                    </div>
+
+                    <div class="panel">
+                        <h3 class="panel-title">ARTIFACT SUMMARY</h3>
+                        <div class="summary-grid">
+                            <div class="summary-label">TITLE</div><div id="artifact-title">Waiting for upload...</div>
+                            <div class="summary-label">ERA</div><div id="artifact-era">-</div>
+                            <div class="summary-label">ORIGIN</div><div id="artifact-culture">-</div>
+                            <div class="summary-label">SOURCE</div><div><span id="source-badge" class="source-badge">PENDING</span></div>
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <input type="file" id="file-input" accept="image/*">
+                        <button class="action-btn" id="load-btn" type="button">LOAD_NEW_IMAGE</button>
+                        <button class="action-btn primary" id="play-btn" type="button" disabled>ENGAGE_SEQUENCER</button>
+                        <button class="action-btn" id="save-btn" type="button" disabled>SAVE_SEQUENCE</button>
+                    </div>
+                </section>
+
+                <section class="screen" id="params-screen">
+                    <div class="panel">
+                        <h3 class="panel-title">IMAGE PREVIEW REFERENCE</h3>
+                        <div class="viewport" id="params-image-wrapper">
+                            <div id="params-image-placeholder">NO IMAGE LOADED</div>
+                            <div class="image-wrapper">
+                                <img id="params-image-preview" src="" alt="Params Preview">
+                                <div id="params-scanline"></div>
+                            </div>
+                            <div id="params-scan-progress">STEP 0 / 64</div>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <h3 class="panel-title">RECORD SOURCE</h3>
+                        <div class="summary-grid">
+                            <div class="summary-label">SOURCE</div><div id="record-source-type">-</div>
+                            <div class="summary-label">TITLE</div><div id="record-source-title">-</div>
+                            <div class="summary-label">NOTE</div><div id="record-source-note">Awaiting generated record.</div>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <h3 class="panel-title">THREE-LAYER BALANCE</h3>
+                        <div class="weight-controls">
+                            <div class="weight-row">
+                                <label>BOTTOM / HISTORICAL ATMOSPHERE
+                                    <input id="weight-bottom" type="range" min="0" max="1" step="0.01" value="0.6">
+                                </label>
+                                <div id="weight-bottom-value" class="weight-value">60%</div>
+                            </div>
+
+                            <div class="weight-row">
+                                <label>MIDDLE / IMAGE TRAVERSAL
+                                    <input id="weight-middle" type="range" min="0" max="1" step="0.01" value="0.25">
+                                </label>
+                                <div id="weight-middle-value" class="weight-value">25%</div>
+                            </div>
+
+                            <div class="weight-row">
+                                <label>SURFACE / MATERIAL TEXTURE
+                                    <input id="weight-surface" type="range" min="0" max="1" step="0.01" value="0.15">
+                                </label>
+                                <div id="weight-surface-value" class="weight-value">15%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <h3 class="panel-title">BOTTOM LAYER</h3>
+                        <div id="bottom-layer-rows" class="param-rows"></div>
+                    </div>
+
+                    <div class="panel">
+                        <h3 class="panel-title">MIDDLE LAYER</h3>
+                        <div id="middle-layer-rows" class="param-rows"></div>
+                        <div id="param-output">Waiting for upload...</div>
+                    </div>
+
+                    <div class="panel">
+                        <h3 class="panel-title">SURFACE LAYER</h3>
+                        <div id="surface-layer-rows" class="param-rows"></div>
+                    </div>
+
+                    <div class="panel">
+                        <h3 class="panel-title">TRANSLATION SUMMARY</h3>
+                        <details id="reasoning-details">
+                            <summary>Click to Expand / Collapse</summary>
+                            <div id="reasoning-output">Waiting for upload...</div>
+                        </details>
+                    </div>
+
+                    <div class="panel">
+                        <h3 class="panel-title">RAW METADATA</h3>
+                        <div id="metadata-content">Waiting for upload...</div>
+                    </div>
+                </section>
+
+                <section class="screen" id="library-screen">
+                    <div class="panel">
+                        <div class="library-header">
+                            <div>GENERATION_ARCHIVE</div>
+                            <div id="library-count">0 RECORDS</div>
+                        </div>
+                    </div>
+
+                    <div id="library-empty" class="empty-library">
+                        <div style="font-size:20px; margin-bottom:6px;">⌂</div>
+                        <div style="font-weight:bold; margin-bottom:4px;">ARCHIVE EMPTY</div>
+                        <div>Saved sonic records will appear here.</div>
+                    </div>
+
+                    <div id="library-list" style="display:grid; gap:8px;"></div>
+                </section>
+            </main>
+
+            <nav class="tab-bar">
+                <button class="tab-btn active" data-tab="camera" type="button"><div>◉</div><div>CAMERA</div></button>
+                <button class="tab-btn" data-tab="params" type="button"><div>▣</div><div>PARAMS</div></button>
+                <button class="tab-btn" data-tab="library" type="button"><div>☰</div><div>LIBRARY</div></button>
+            </nav>
+        </div>
+    </div>
+    <script>
+        // 这里是 JavaScript：负责业务逻辑和规则设定
+
+        // ========== OpenAI参数生成系统提示 ==========
+        const SYSTEM_PROMPT = `
+    You are a senior museum sound interaction designer and synesthesia artist.
+    Your task is to read museum collection metadata (era, material, culture, description) and transform it into parameters for an electronic music synthesizer in Tone.js.
+    Return a JSON object that strictly follows this schema:
+    {
+        "bpm": [integer, range 40-160. Older or more solemn objects should generally be slower; more modern or lively objects faster],
+        "scale": [string, choose the scale that best fits the culture, such as "pentatonic", "minor", "major", "chromatic"],
+        "synth_type": [string, waveform mapped from material. Must be one of: "sine", "square", "triangle", "sawtooth"],
+        "reverb_size": [float, range 0.1-1.0. Older objects or imagery with stronger spatial atmosphere should generally have larger reverb],
+        "rhythm_density": [string. Must be one of: "sparse", "moderate", "dense"],
+        "register": [string. Must be one of: "low", "mid", "high"],
+        "reasoning_summary": [string. Write 2-4 sentences in English summarizing the design rationale. Explain how era, material, culture, or image atmosphere influenced the mapping. Do not provide chain-of-thought.]
+    }
+    If the uploaded photo does not exist in the metadata database, you must directly analyze the image content (color, material, pattern, composition, atmosphere) and generate the same JSON structure.
+    Output only a pure JSON object in English, with no explanatory text and no Markdown code fences.
+    `;
+
+        // 1. 获取网页上的元素 (获取“数字器官”)
+        const fileInput = document.getElementById('file-input');
+        const imagePreview = document.getElementById('image-preview');
+        const paramsImagePreview = document.getElementById('params-image-preview');
+        const metadataContent = document.getElementById('metadata-content');
+        const paramOutput = document.getElementById('param-output');
+        const reasoningOutput = document.getElementById('reasoning-output');
+        const reasoningDetails = document.getElementById('reasoning-details');
+        const scanline = document.getElementById('scanline');
+        const paramsScanline = document.getElementById('params-scanline');
+        const scanProgress = document.getElementById('scan-progress');
+        const paramsScanProgress = document.getElementById('params-scan-progress');
+        const imagePlaceholder = document.getElementById('image-placeholder');
+        const paramsImagePlaceholder = document.getElementById('params-image-placeholder');
+
+        const loadBtn = document.getElementById('load-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const tabButtons = Array.from(document.querySelectorAll('.tab-btn'));
+        const screens = {
+            camera: document.getElementById('camera-screen'),
+            params: document.getElementById('params-screen'),
+            library: document.getElementById('library-screen')
+        };
+
+        const systemLogList = document.getElementById('system-log-list');
+        const artifactTitle = document.getElementById('artifact-title');
+        const artifactEra = document.getElementById('artifact-era');
+        const artifactCulture = document.getElementById('artifact-culture');
+        const sourceBadge = document.getElementById('source-badge');
+
+        const recordSourceType = document.getElementById('record-source-type');
+        const recordSourceTitle = document.getElementById('record-source-title');
+        const recordSourceNote = document.getElementById('record-source-note');
+
+        const bottomLayerRows = document.getElementById('bottom-layer-rows');
+        const middleLayerRows = document.getElementById('middle-layer-rows');
+        const surfaceLayerRows = document.getElementById('surface-layer-rows');
+
+        const libraryList = document.getElementById('library-list');
+        const libraryEmpty = document.getElementById('library-empty');
+        const libraryCount = document.getElementById('library-count');
+
+        const weightBottomInput = document.getElementById('weight-bottom');
+        const weightMiddleInput = document.getElementById('weight-middle');
+        const weightSurfaceInput = document.getElementById('weight-surface');
+        const weightBottomValue = document.getElementById('weight-bottom-value');
+        const weightMiddleValue = document.getElementById('weight-middle-value');
+        const weightSurfaceValue = document.getElementById('weight-surface-value');
+
+        const MELODY_STEP_COUNT = 64;
+        const PLAYBACK_SPEED_MULTIPLIER = 1.12;
+        const LIBRARY_STORAGE_KEY = 'museumSonicArchiveRecords';
+        const MAX_LOG_ITEMS = 10;
+
+        const layerWeights = {
+            bottom: 0.6,
+            middle: 0.25,
+            surface: 0.15
+        };
+
+        // Playback state
+        const playBtn = document.getElementById('play-btn');
+        let currentParams = null;
+        let currentMetadata = null;
+        let currentSourceType = 'pending';
+        let currentImageDataUrl = '';
+        let currentRecord = null;
+        let currentInferredRecord = null;
+        let libraryRecords = loadLibraryRecords();
+
+        const audioEngine = {
+            reverb: null,
+            mainSynth: null,
+            mainFilter: null,
+            mainPan: null,
+            melodySequence: null,
+            droneSynth: null,
+            droneFilter: null,
+            droneGain: null,
+            droneLoop: null,
+            bottomMelodySynth: null,
+            bottomMelodyFilter: null,
+            bottomMelodyGain: null,
+            bottomMelodyLoop: null,
+            textureSynth: null,
+            textureLoop: null,
+            stepData: [],
+            notePool: [],
+            baseStepEvents: [],
+            macroRegions: [],
+            loopIndex: 0,
+            lastMelodyStepIndex: -1,
+            lastBrightness: 0.5
+        };
+
+        // 2. 加载本地 JSON 数据库 (核心数据源)
+        // 用 fetch 读取本地 database.json 文件（需用本地服务器访问页面）
+        let database = [];
+        fetch('database.json')
+            .then(response => response.json())
+            .then(data => {
+                database = data;
+                appendSystemLog('ARCHIVE_DATABASE_READY');
+            })
+            .catch(error => {
+                metadataContent.innerHTML = `<div class='data-value' style='color:red'>Failed to load database: ${error}</div>`;
+                appendSystemLog('DATABASE_LOAD_FAILED');
+            });
+
+        loadBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        [
+            [weightBottomInput, 'bottom', weightBottomValue],
+            [weightMiddleInput, 'middle', weightMiddleValue],
+            [weightSurfaceInput, 'surface', weightSurfaceValue]
+        ].forEach(([input, key, valueLabel]) => {
+            input.addEventListener('input', () => {
+                layerWeights[key] = Number(input.value);
+                valueLabel.textContent = `${Math.round(layerWeights[key] * 100)}%`;
+                applyLayerWeightsRealtime();
+            });
+        });
+
+        saveBtn.addEventListener('click', () => {
+            const record = buildCurrentRecord();
+            if (!record) return;
+
+            libraryRecords.unshift(record);
+            libraryRecords = libraryRecords.slice(0, 100);
+            persistLibraryRecords();
+            renderLibrary();
+            currentRecord = record;
+            appendSystemLog('RECORD_SAVED_TO_ARCHIVE');
+            setActiveTab('library');
+        });
+
+        tabButtons.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                setActiveTab(btn.dataset.tab);
+            });
+        });
+
+        libraryList.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-open-record]');
+            if (!button) return;
+            openLibraryRecord(button.dataset.openRecord);
+        });
+
+        // 3. 监听上传按钮的“变化（change）”事件
+        fileInput.addEventListener('change', async (event) => {
+            // 获取用户上传的第一个文件
+            const file = event.target.files[0];
+            if (!file) return;
+
+            appendSystemLog('IMAGE_LOADED');
+            saveBtn.disabled = true;
+
+            // --- A. 预览图片 ---
+            const imageUrl = URL.createObjectURL(file);
+            imagePreview.src = imageUrl;
+            imagePreview.style.display = 'block';
+            imagePlaceholder.style.display = 'none';
+            paramsImagePreview.src = imageUrl;
+            paramsImagePreview.style.display = 'block';
+            paramsImagePlaceholder.style.display = 'none';
+            try {
+                currentImageDataUrl = await fileToDataURL(file);
+            } catch (_err) {
+                currentImageDataUrl = imageUrl;
+            }
+
+            // --- B. 核心逻辑：匹配 Metadata ---
+            const uploadedFileName = file.name;
+            const matchedItem = database.find(item => item.image_path.includes(uploadedFileName));
+
+            if (matchedItem) {
+                // --- 匹配成功：显示数据 ---
+                displayMetadata(matchedItem);
+                currentMetadata = matchedItem.metadata;
+                currentInferredRecord = null;
+                currentSourceType = 'database';
+                updateSourceBadge(currentSourceType);
+                updateArtifactSummary(matchedItem.name, matchedItem.metadata, currentSourceType);
+                appendSystemLog('DATABASE_MATCH_FOUND');
+
+                // 进入 Loading 状态
+                paramOutput.innerHTML = 'Generating sound parameters with AI...';
+                reasoningOutput.innerHTML = 'Generating design summary...';
+                reasoningDetails.open = false;
+                playBtn.disabled = true;
+                stopPlayback();
+                disposeAudioEngine();
+                resetScanline();
+                hideScanline();
+
+                // --- C. 调用 OpenAI API 生成音乐参数 ---
+                try {
+                    const result = await fetchGPTParams(matchedItem.metadata);
+                    currentParams = result.params;
+                    paramOutput.innerHTML = JSON.stringify(currentParams, null, 2);
+                    reasoningOutput.innerHTML = result.reasoning;
+                    syncParamsView();
+                    playBtn.disabled = false;
+                    playBtn.innerText = 'ENGAGE_SEQUENCER';
+                    playBtn.classList.remove('active');
+                    saveBtn.disabled = false;
+                    appendSystemLog('AI_RECORD_GENERATED');
+                } catch (error) {
+                    paramOutput.innerHTML = `<span style="color:red">Failed to generate AI parameters: ${error.message}</span>`;
+                    reasoningOutput.innerHTML = `<span style="color:red">Failed to generate design summary: ${error.message}</span>`;
+                    appendSystemLog('AI_GENERATION_FAILED');
+                }
+            } else {
+                // --- 未匹配数据库：直接分析图片生成参数 ---
+                metadataContent.innerHTML = "<div class='data-value' style='color:#f2cc60'>No database match found. Stage 1: inferring artifact record.</div>";
+                currentMetadata = null;
+                currentSourceType = 'ai_inferred';
+                updateSourceBadge(currentSourceType);
+                updateArtifactSummary(file.name, null, currentSourceType);
+                appendSystemLog('AI_ARCHIVE_INFERENCE_TRIGGERED');
+                paramOutput.innerHTML = "Stage 2 pending: waiting for inferred record...";
+                reasoningOutput.innerHTML = 'Generating design summary from the image...';
+                reasoningDetails.open = false;
+                playBtn.disabled = true;
+                stopPlayback();
+                disposeAudioEngine();
+                resetScanline();
+                hideScanline();
+
+                try {
+                    const inferredRecord = await inferArtifactRecordFromImage(file);
+                    currentInferredRecord = inferredRecord;
+                    currentMetadata = mapInferredRecordToMetadata(inferredRecord);
+                    displayMetadata({ name: inferredRecord.title, metadata: currentMetadata });
+                    updateArtifactSummary(inferredRecord.title, currentMetadata, currentSourceType);
+                    recordSourceNote.textContent = `ESTIMATED CONFIDENCE: ${inferredRecord.sourceConfidence}`;
+                    appendSystemLog('AI_RECORD_INFERRED');
+
+                    paramOutput.innerHTML = "Stage 2: generating sonic profile from inferred record...";
+                    const result = await fetchGPTParams(currentMetadata);
+                    currentParams = result.params;
+                    paramOutput.innerHTML = JSON.stringify(currentParams, null, 2);
+                    reasoningOutput.innerHTML = `${inferredRecord.inferenceSummary}\n\n${result.reasoning}`;
+                    syncParamsView();
+                    playBtn.disabled = false;
+                    playBtn.innerText = 'ENGAGE_SEQUENCER';
+                    playBtn.classList.remove('active');
+                    saveBtn.disabled = false;
+                    appendSystemLog('AI_RECORD_GENERATED');
+                } catch (error) {
+                    paramOutput.innerHTML = `<span style="color:red">Image analysis failed: ${error.message}</span>`;
+                    reasoningOutput.innerHTML = `<span style="color:red">Failed to generate design summary: ${error.message}</span>`;
+                    appendSystemLog('AI_GENERATION_FAILED');
+                }
+            }
+        });
+
+        // ==========================================
+        // 辅助函数：负责在网页上排版 Metadata
+        // ==========================================
+        function displayMetadata(item) {
+            let html = '';
+            
+            // 标题
+            html += `<div class="data-item">
+                        <div class="data-key">Title:</div>
+                        <div class="data-value">${item.name}</div>
+                     </div>`;
+            
+            // 循环遍历 metadata 里面的每一项 (era, material, function, description)
+            for (let key in item.metadata) {
+                html += `<div class="data-item">
+                            <div class="data-key">${key}:</div>
+                            <div class="data-value">${item.metadata[key]}</div>
+                         </div>`;
+            }
+            
+            metadataContent.innerHTML = html;
+        }
+
+        function appendSystemLog(message) {
+            const li = document.createElement('li');
+            const timestamp = new Date().toLocaleTimeString();
+            li.textContent = `[${timestamp}] ${message}`;
+            systemLogList.prepend(li);
+
+            while (systemLogList.children.length > MAX_LOG_ITEMS) {
+                systemLogList.removeChild(systemLogList.lastChild);
+            }
+        }
+
+        function setActiveTab(tab) {
+            Object.entries(screens).forEach(([name, element]) => {
+                element.classList.toggle('active', name === tab);
+            });
+
+            tabButtons.forEach((btn) => {
+                btn.classList.toggle('active', btn.dataset.tab === tab);
+            });
+        }
+
+        function updateSourceBadge(sourceType) {
+            sourceBadge.classList.remove('ai');
+            if (sourceType === 'database') {
+                sourceBadge.textContent = 'DATABASE ARCHIVE';
+            } else if (sourceType === 'ai_inferred') {
+                sourceBadge.textContent = 'AI INFERRED RECORD';
+                sourceBadge.classList.add('ai');
+            } else {
+                sourceBadge.textContent = 'PENDING';
+            }
+
+            recordSourceType.textContent = sourceBadge.textContent;
+        }
+
+        function updateArtifactSummary(title, metadata, sourceType) {
+            artifactTitle.textContent = title || 'Untitled Artifact';
+            artifactEra.textContent = metadata?.era || '-';
+            artifactCulture.textContent = metadata?.culture || metadata?.origin || '-';
+            updateSourceBadge(sourceType);
+            recordSourceTitle.textContent = artifactTitle.textContent;
+        }
+
+        function renderParameterRows(target, rows) {
+            target.innerHTML = rows
+                .map((row) => `<div class="param-row"><span>${row.label}</span><span>${row.value}</span></div>`)
+                .join('');
+        }
+
+        function syncParamsView() {
+            if (!currentParams) return;
+
+            const archetype = getArtifactSonicArchetype({
+                title: artifactTitle.textContent,
+                metadata: currentMetadata,
+                sourceType: currentSourceType
+            });
+
+            const bottomRows = [
+                { label: 'Tonal Basis', value: String(currentParams.scale || 'pentatonic').toUpperCase() },
+                { label: 'Register Focus', value: String(currentParams.register || 'mid').toUpperCase() },
+                { label: 'Drone Intensity', value: `WEIGHT ${Math.round(layerWeights.bottom * 100)}%` },
+                { label: 'Reverb Depth', value: String(currentParams.reverb_size ?? 0.5) }
+            ];
+
+            const middleRows = [
+                { label: 'Scan Resolution', value: `${MELODY_STEP_COUNT} STEPS` },
+                { label: 'Scan Speed', value: getSequenceInterval(currentParams.rhythm_density) },
+                { label: 'Melodic Density', value: `WEIGHT ${Math.round(layerWeights.middle * 100)}%` },
+                { label: 'Trigger Logic', value: archetype.middleTriggerLabel }
+            ];
+
+            const material = currentMetadata?.material || 'unknown';
+            const textureEngine = /metal|bronze|iron|steel/i.test(material)
+                ? 'METAL SYNTH'
+                : /bone|wood|stone|rock|ceramic/i.test(material)
+                    ? 'MEMBRANE SYNTH'
+                    : 'SOFT NOISE';
+
+            const surfaceRows = [
+                { label: 'Material Class', value: material.toUpperCase() },
+                { label: 'Texture Engine', value: textureEngine },
+                { label: 'Accent Sparsity', value: `WEIGHT ${Math.round(layerWeights.surface * 100)}%` },
+                { label: 'Surface Mode', value: 'CONTRAST TRIGGER' }
+            ];
+
+            renderParameterRows(bottomLayerRows, bottomRows);
+            renderParameterRows(middleLayerRows, middleRows);
+            renderParameterRows(surfaceLayerRows, surfaceRows);
+
+            recordSourceNote.textContent = currentSourceType === 'database'
+                ? 'SOURCE: DATABASE MATCH'
+                : 'SOURCE: AI ARCHIVE INFERENCE';
+        }
+
+        function mapInferredRecordToMetadata(record) {
+            return {
+                era: record.era || 'Estimated modern archive specimen',
+                culture: record.culture || record.origin || 'Estimated source unknown',
+                material: record.material || 'Estimated composite material',
+                function: record.function || 'Estimated archival object',
+                category: record.category || 'Estimated artifact',
+                description: record.description || 'AI inferred museum object profile.'
+            };
+        }
+
+        function inferRecordHeuristic(fileName) {
+            const name = (fileName || '').toLowerCase();
+            const byKeyword = [
+                { key: /butterfly|moth|insect|wing/, title: 'Estimated Butterfly Specimen Board', category: 'Specimen', material: 'Organic tissue, pinning board', function: 'Taxonomic display', culture: 'Natural history collection', era: 'Estimated 20th century' },
+                { key: /gem|crystal|mineral|stone|opal|diamond/, title: 'Estimated Mineral/Gem Artifact', category: 'Mineral sample', material: 'Crystal/mineral', function: 'Display specimen', culture: 'Geological collection', era: 'Estimated contemporary catalog' },
+                { key: /boot|shoe|moccasin|leather/, title: 'Estimated Leather Footwear Artifact', category: 'Footwear', material: 'Leather, hide, textile', function: 'Worn object', culture: 'Estimated indigenous/cultural collection', era: 'Estimated historical catalog' },
+                { key: /fossil|bone|tooth|shell/, title: 'Estimated Fossilized Object', category: 'Fossil', material: 'Stone/fossil matrix', function: 'Paleontological specimen', culture: 'Natural history collection', era: 'Estimated ancient origin' },
+                { key: /tool|knife|axe|instrument|mechanic/, title: 'Estimated Utilitarian Tool Artifact', category: 'Tool', material: 'Metal/wood composite', function: 'Practical instrument', culture: 'Estimated craft collection', era: 'Estimated industrial period' },
+                { key: /textile|cloth|garment|feather|weave/, title: 'Estimated Textile/Garment Artifact', category: 'Textile', material: 'Fiber, cloth, organic weave', function: 'Ceremonial or wearable', culture: 'Estimated regional craft tradition', era: 'Estimated historical catalog' }
+            ];
+
+            const matched = byKeyword.find((item) => item.key.test(name));
+            const base = matched || {
+                title: 'Estimated Museum Artifact Record',
+                category: 'Artifact',
+                material: 'Mixed materials',
+                function: 'Display object',
+                culture: 'Estimated collection source',
+                era: 'Estimated catalog period'
+            };
+
+            return {
+                ...base,
+                origin: base.culture,
+                description: `Inferred from uploaded image filename and visual context (${fileName}).`,
+                sourceType: 'ai_inferred',
+                sourceConfidence: 'medium',
+                inferenceSummary: 'No database match was found. A structured artifact record was inferred first, then used as the basis for sonic profile generation.'
+            };
+        }
+
+        async function inferArtifactRecordFromImage(file) {
+            const imageDataUrl = currentImageDataUrl || await fileToDataURL(file);
+            const recordPrompt = `
+You infer museum artifact records from images.
+Return JSON only with fields:
+title, era, origin, culture, material, category, function, description, sourceType, sourceConfidence, inferenceSummary.
+Use sourceType as "ai_inferred" and fill all fields with best estimates.
+`;
+
+            try {
+                const response = await fetch('/api/infer-artifact-record', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imageDataUrl, systemPrompt: recordPrompt })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                return {
+                    title: data.title || 'Estimated Museum Artifact Record',
+                    era: data.era || 'Estimated catalog period',
+                    origin: data.origin || data.culture || 'Estimated origin',
+                    culture: data.culture || data.origin || 'Estimated culture',
+                    material: data.material || 'Estimated mixed materials',
+                    category: data.category || 'Artifact',
+                    function: data.function || 'Estimated collection object',
+                    description: data.description || 'AI inferred artifact description.',
+                    sourceType: 'ai_inferred',
+                    sourceConfidence: data.sourceConfidence || 'medium',
+                    inferenceSummary: data.inferenceSummary || 'Artifact record inferred from image before sonic profile generation.'
+                };
+            } catch (_error) {
+                return inferRecordHeuristic(file.name);
+            }
+        }
+
+        function getArtifactSonicArchetype(record) {
+            const text = [
+                record?.title || '',
+                record?.metadata?.material || '',
+                record?.metadata?.function || '',
+                record?.metadata?.description || ''
+            ].join(' ').toLowerCase();
+
+            const archetypes = [
+                { key: /fossil|ancient|stone|archaeology|sediment/, name: 'ancient', bpmFactor: 0.88, reverbBias: 0.15, middleGate: 4, droneBoost: 0.2, surfaceBoost: -0.08, middleTriggerLabel: 'SLOW MOTION GATING' },
+                { key: /gem|crystal|mineral|jewel|glass/, name: 'gem', bpmFactor: 1.1, reverbBias: 0.08, middleGate: 2, droneBoost: -0.05, surfaceBoost: 0.1, middleTriggerLabel: 'BRIGHT SHIMMER GATING' },
+                { key: /butterfly|insect|wing|specimen/, name: 'flutter', bpmFactor: 1.08, reverbBias: -0.03, middleGate: 2, droneBoost: -0.1, surfaceBoost: 0.06, middleTriggerLabel: 'LIGHT FLUTTER GATING' },
+                { key: /leather|boot|shoe|moccasin|rustic/, name: 'leather', bpmFactor: 0.94, reverbBias: -0.08, middleGate: 3, droneBoost: 0.12, surfaceBoost: -0.06, middleTriggerLabel: 'DRY GROUND GATING' },
+                { key: /tool|instrument|mechanic|metal/, name: 'tool', bpmFactor: 1.0, reverbBias: -0.02, middleGate: 2, droneBoost: 0.05, surfaceBoost: 0.03, middleTriggerLabel: 'STRUCTURED GATING' },
+                { key: /textile|garment|cloth|feather|woven/, name: 'textile', bpmFactor: 0.98, reverbBias: 0.04, middleGate: 3, droneBoost: 0.08, surfaceBoost: 0.02, middleTriggerLabel: 'FLOWING GATING' }
+            ];
+
+            const found = archetypes.find((item) => item.key.test(text));
+            return found || {
+                name: 'default',
+                bpmFactor: 1,
+                reverbBias: 0,
+                middleGate: 3,
+                droneBoost: 0,
+                surfaceBoost: 0,
+                middleTriggerLabel: 'STEP + CHANGE GATED'
+            };
+        }
+
+        function derivePlaybackProfile(profile, record) {
+            const archetype = getArtifactSonicArchetype(record);
+            const derived = { ...profile };
+            derived.bpm = clamp((Number(derived.bpm) || 80) * archetype.bpmFactor, 40, 180);
+            derived.reverb_size = clamp((Number(derived.reverb_size) || 0.5) + archetype.reverbBias, 0.1, 1.0);
+            derived.middleGate = archetype.middleGate;
+            derived.archetype = archetype;
+            return derived;
+        }
+
+        function applyLayerWeightsRealtime() {
+            if (!audioEngine.reverb) return;
+
+            if (audioEngine.droneGain) {
+                audioEngine.droneGain.gain.rampTo(clamp(0.4 + layerWeights.bottom * 0.7, 0.35, 1.05), 0.2);
+            }
+
+            if (audioEngine.bottomMelodyGain) {
+                audioEngine.bottomMelodyGain.gain.rampTo(clamp(0.25 + layerWeights.bottom * 1.05, 0.2, 1.25), 0.2);
+            }
+
+            if (audioEngine.bottomMelodySynth) {
+                const bottomDb = -24 + layerWeights.bottom * 14;
+                audioEngine.bottomMelodySynth.volume.rampTo(bottomDb, 0.2);
+            }
+
+            if (audioEngine.mainSynth) {
+                const middleDb = -22 + layerWeights.middle * 18;
+                audioEngine.mainSynth.volume.rampTo(middleDb, 0.2);
+            }
+
+            if (audioEngine.textureSynth) {
+                const surfaceDb = -34 + layerWeights.surface * 18;
+                audioEngine.textureSynth.volume.rampTo(surfaceDb, 0.2);
+            }
+        }
+
+        function loadLibraryRecords() {
+            try {
+                const raw = localStorage.getItem(LIBRARY_STORAGE_KEY);
+                return raw ? JSON.parse(raw) : [];
+            } catch (_error) {
+                return [];
+            }
+        }
+
+        function persistLibraryRecords() {
+            localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(libraryRecords));
+        }
+
+        function getLibrarySummary(record) {
+            const rhythm = record.sonicProfile?.middleLayer?.rhythmDensity || 'moderate';
+            const synth = record.sonicProfile?.surfaceLayer?.engine || 'soft noise';
+            return `Bottom: drone | Middle: ${rhythm} scan | Surface: ${synth}`;
+        }
+
+        function renderLibrary() {
+            libraryCount.textContent = `${libraryRecords.length} RECORDS`;
+            libraryEmpty.style.display = libraryRecords.length ? 'none' : 'block';
+
+            libraryList.innerHTML = libraryRecords
+                .map((record) => `
+                    <article class="library-card">
+                        <img class="library-thumb" src="${record.imageSrc || ''}" alt="record thumbnail">
+                        <div class="library-meta">
+                            <div style="font-weight:bold; color:#dce9ff;">${record.title || 'UNTITLED RECORD'}</div>
+                            <div><span class="source-badge ${record.sourceType === 'ai_inferred' ? 'ai' : ''}">${record.sourceType === 'database' ? 'DATABASE ARCHIVE' : 'AI INFERRED RECORD'}</span></div>
+                            <div style="color:#8ea2c9;">${new Date(record.createdAt).toLocaleString()}</div>
+                            <div>${getLibrarySummary(record)}</div>
+                            <div class="library-actions">
+                                <button class="mini-btn" type="button" data-open-record="${record.id}">OPEN</button>
+                            </div>
+                        </div>
+                    </article>
+                `)
+                .join('');
+        }
+
+        function buildCurrentRecord() {
+            if (!currentParams) return null;
+
+            return {
+                id: `rec-${Date.now()}`,
+                imageSrc: currentImageDataUrl || imagePreview.src,
+                title: artifactTitle.textContent || 'Untitled Artifact',
+                era: currentMetadata?.era || null,
+                culture: currentMetadata?.culture || null,
+                material: currentMetadata?.material || null,
+                sourceType: currentSourceType,
+                inferredRecord: currentInferredRecord,
+                layerWeights: { ...layerWeights },
+                sonicProfile: {
+                    bottomLayer: {
+                        scale: currentParams.scale,
+                        register: currentParams.register,
+                        reverbDepth: currentParams.reverb_size
+                    },
+                    middleLayer: {
+                        scanResolution: MELODY_STEP_COUNT,
+                        rhythmDensity: currentParams.rhythm_density
+                    },
+                    surfaceLayer: {
+                        engine: /metal|bronze|iron|steel/i.test(currentMetadata?.material || '')
+                            ? 'metal synth'
+                            : /bone|wood|stone|rock|ceramic/i.test(currentMetadata?.material || '')
+                                ? 'membrane synth'
+                                : 'soft noise'
+                    }
+                },
+                translationSummary: reasoningOutput.textContent,
+                params: currentParams,
+                metadata: currentMetadata,
+                createdAt: new Date().toISOString()
+            };
+        }
+
+        function openLibraryRecord(recordId) {
+            const record = libraryRecords.find((item) => item.id === recordId);
+            if (!record) return;
+
+            stopPlayback();
+            disposeAudioEngine();
+
+            currentRecord = record;
+            currentParams = record.params || null;
+            currentMetadata = record.metadata || null;
+            currentSourceType = record.sourceType || 'ai_inferred';
+            currentImageDataUrl = record.imageSrc || '';
+            currentInferredRecord = record.inferredRecord || null;
+
+            if (record.layerWeights) {
+                layerWeights.bottom = Number(record.layerWeights.bottom ?? layerWeights.bottom);
+                layerWeights.middle = Number(record.layerWeights.middle ?? layerWeights.middle);
+                layerWeights.surface = Number(record.layerWeights.surface ?? layerWeights.surface);
+                weightBottomInput.value = String(layerWeights.bottom);
+                weightMiddleInput.value = String(layerWeights.middle);
+                weightSurfaceInput.value = String(layerWeights.surface);
+                weightBottomValue.textContent = `${Math.round(layerWeights.bottom * 100)}%`;
+                weightMiddleValue.textContent = `${Math.round(layerWeights.middle * 100)}%`;
+                weightSurfaceValue.textContent = `${Math.round(layerWeights.surface * 100)}%`;
+            }
+
+            if (record.imageSrc) {
+                imagePreview.src = record.imageSrc;
+                imagePreview.style.display = 'block';
+                imagePlaceholder.style.display = 'none';
+                paramsImagePreview.src = record.imageSrc;
+                paramsImagePreview.style.display = 'block';
+                paramsImagePlaceholder.style.display = 'none';
+            }
+
+            reasoningOutput.textContent = record.translationSummary || 'No summary available.';
+            paramOutput.textContent = JSON.stringify(currentParams || {}, null, 2);
+
+            updateArtifactSummary(record.title, record.metadata, currentSourceType);
+            syncParamsView();
+            playBtn.disabled = !currentParams;
+            saveBtn.disabled = false;
+            setActiveTab('camera');
+            appendSystemLog('RECORD_RELOADED_FROM_ARCHIVE');
+        }
+
+        // ==========================================
+        // Parameter mapping helpers
+        // ==========================================
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
+        }
+
+        function getScaleNotes(scale, register) {
+            const scaleMap = {
+                major: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
+                minor: ['C', 'D', 'Eb', 'F', 'G', 'Ab', 'Bb'],
+                pentatonic: ['C', 'D', 'E', 'G', 'A'],
+                chromatic: ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+            };
+
+            const registerMap = {
+                low: [2, 4],
+                mid: [3, 5],
+                high: [4, 6]
+            };
+
+            const noteNames = scaleMap[scale] || scaleMap.pentatonic;
+            const [startOctave, endOctave] = registerMap[register] || registerMap.mid;
+            const notes = [];
+
+            for (let octave = startOctave; octave <= endOctave; octave += 1) {
+                for (const noteName of noteNames) {
+                    notes.push(`${noteName}${octave}`);
+                }
+            }
+
+            return notes;
+        }
+
+        function getSequenceInterval(rhythmDensity) {
+            const map = {
+                sparse: '4n',
+                moderate: '8n',
+                dense: '16n'
+            };
+            return map[rhythmDensity] || '8n';
+        }
+
+        function createMainSynth(synthType) {
+            const synthPresets = {
+                sine: {
+                    oscillator: { type: 'sine' },
+                    envelope: { attack: 0.08, decay: 0.25, sustain: 0.35, release: 1.6 }
+                },
+                triangle: {
+                    oscillator: { type: 'triangle' },
+                    envelope: { attack: 0.05, decay: 0.2, sustain: 0.3, release: 1.2 }
+                },
+                square: {
+                    oscillator: { type: 'square' },
+                    envelope: { attack: 0.01, decay: 0.14, sustain: 0.22, release: 1.0 }
+                },
+                sawtooth: {
+                    oscillator: { type: 'sawtooth' },
+                    envelope: { attack: 0.01, decay: 0.12, sustain: 0.25, release: 0.95 }
+                }
+            };
+
+            const config = synthPresets[synthType] || synthPresets.triangle;
+            const synth = new Tone.Synth(config);
+            synth.volume.value = -7;
+            return synth;
+        }
+
+        function createReverb(reverbSize) {
+            const normalized = Number.isFinite(Number(reverbSize)) ? clamp(Number(reverbSize), 0.1, 1.0) : 0.5;
+            const decay = 1.5 + normalized * 4.5;
+            return new Tone.Reverb({ decay, wet: 0.45 }).toDestination();
+        }
+
+        // ==========================================
+        // Image analysis helpers
+        // ==========================================
+        function analyzeImageToSteps(imageElement, stepCount = MELODY_STEP_COUNT) {
+            const steps = stepCount;
+
+            if (!imageElement || !imageElement.naturalWidth || !imageElement.naturalHeight) {
+                return Array.from({ length: steps }, () => ({ brightness: 0.5, contrast: 0.1 }));
+            }
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            canvas.width = 160;
+            canvas.height = 160;
+            ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
+
+            const sliceWidth = canvas.width / steps;
+            const stepData = [];
+
+            for (let i = 0; i < steps; i += 1) {
+                const x = Math.floor(i * sliceWidth);
+                const w = Math.max(1, Math.floor(sliceWidth));
+                const imageData = ctx.getImageData(x, 0, w, canvas.height).data;
+
+                const brightnessSamples = [];
+                for (let p = 0; p < imageData.length; p += 4) {
+                    const r = imageData[p];
+                    const g = imageData[p + 1];
+                    const b = imageData[p + 2];
+                    const brightness = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+                    brightnessSamples.push(brightness);
+                }
+
+                const avgBrightness = brightnessSamples.reduce((sum, value) => sum + value, 0) / brightnessSamples.length;
+                const variance = brightnessSamples.reduce((sum, value) => {
+                    const diff = value - avgBrightness;
+                    return sum + diff * diff;
+                }, 0) / brightnessSamples.length;
+                const contrast = Math.sqrt(variance);
+
+                stepData.push({ brightness: avgBrightness, contrast });
+            }
+
+            return stepData;
+        }
+
+        function analyzeMacroRegions(stepData, regionCount = 4) {
+            if (!stepData.length) {
+                return Array.from({ length: regionCount }, () => ({ brightness: 0.5, contrast: 0.1 }));
+            }
+
+            const regionSize = Math.ceil(stepData.length / regionCount);
+            const regions = [];
+
+            for (let regionIndex = 0; regionIndex < regionCount; regionIndex += 1) {
+                const start = regionIndex * regionSize;
+                const end = Math.min(stepData.length, start + regionSize);
+                const slice = stepData.slice(start, end);
+
+                if (!slice.length) {
+                    regions.push({ brightness: 0.5, contrast: 0.1 });
+                    continue;
+                }
+
+                const brightness = slice.reduce((sum, s) => sum + s.brightness, 0) / slice.length;
+                const contrast = slice.reduce((sum, s) => sum + s.contrast, 0) / slice.length;
+                regions.push({ brightness, contrast });
+            }
+
+            return regions;
+        }
+
+        // ==========================================
+        // Sequence-building helpers
+        // ==========================================
+        function mapStepsToMelody(stepData, notePool) {
+            const usableNotes = notePool.length ? notePool : ['C4', 'D4', 'E4', 'G4', 'A4'];
+
+            return stepData.map((step, index) => {
+                if (step.brightness < 0.12) {
+                    return null;
+                }
+
+                const noteIndex = Math.floor(clamp(step.brightness, 0, 1) * (usableNotes.length - 1));
+                const velocity = clamp(0.35 + step.contrast * 1.6, 0.25, 0.95);
+                const previous = stepData[Math.max(0, index - 1)] || step;
+                const delta = Math.abs(step.brightness - previous.brightness);
+                const significant = delta > 0.08 || step.contrast > 0.22;
+
+                return {
+                    note: usableNotes[noteIndex],
+                    velocity,
+                    brightness: step.brightness,
+                    contrast: step.contrast,
+                    significant
+                };
+            });
+        }
+
+        function humanizeStepEvents(stepEvents, loopIndex, notePool) {
+            const varianceAmount = Math.min(0.04 + loopIndex * 0.002, 0.08);
+            const varied = stepEvents.map((step, index) => {
+                if (!step) return null;
+
+                const velocityJitter = (Math.random() * 2 - 1) * varianceAmount;
+                let nextVelocity = clamp(step.velocity + velocityJitter, 0.2, 0.98);
+                let nextNote = step.note;
+
+                // Occasional subtle scale-degree shift.
+                if ((index + loopIndex) % 23 === 0 && Math.random() < 0.45) {
+                    const noteIdx = notePool.indexOf(step.note);
+                    if (noteIdx >= 0) {
+                        const shift = Math.random() < 0.5 ? -1 : 1;
+                        const shifted = clamp(noteIdx + shift, 0, notePool.length - 1);
+                        nextNote = notePool[shifted];
+                    }
+                }
+
+                // Rarely skip non-critical notes to avoid obvious looping.
+                if (step.velocity < 0.5 && (index + loopIndex * 3) % 29 === 0 && Math.random() < 0.25) {
+                    return null;
+                }
+
+                return {
+                    note: nextNote,
+                    velocity: nextVelocity
+                };
+            });
+
+            return varied;
+        }
+
+        function buildScanSequence(stepEvents, synth, interval, onStep, notePool) {
+            const stepIndices = Array.from({ length: stepEvents.length }, (_, index) => index);
+            let loopIndex = 0;
+            let activeEvents = humanizeStepEvents(stepEvents, loopIndex, notePool);
+
+            const sequence = new Tone.Sequence((time, stepIndex) => {
+                if (stepIndex === 0 && Tone.Transport.state === 'started' && Tone.Transport.seconds > 0) {
+                    loopIndex += 1;
+                    activeEvents = humanizeStepEvents(stepEvents, loopIndex, notePool);
+                }
+
+                const stepEvent = activeEvents[stepIndex] || null;
+                const stepsSinceLast = stepIndex - audioEngine.lastMelodyStepIndex;
+                const gateSize = audioEngine.middleGate || 3;
+                const reachedInterval = stepsSinceLast >= gateSize || audioEngine.lastMelodyStepIndex < 0;
+                const probability = clamp(0.3 + layerWeights.middle * 1.2, 0.2, 0.9);
+                const canTrigger = stepEvent && (stepEvent.significant || reachedInterval) && Math.random() < probability;
+
+                if (canTrigger) {
+                    synth.triggerAttackRelease(stepEvent.note, '16n', time, stepEvent.velocity);
+                    audioEngine.lastMelodyStepIndex = stepIndex;
+                }
+
+                if (onStep) {
+                    onStep(stepIndex, stepEvent, loopIndex);
+                }
+
+                if (stepIndex === stepEvents.length - 1) {
+                    audioEngine.lastMelodyStepIndex = -1;
+                }
+            }, stepIndices, interval);
+
+            sequence.start(0);
+            return sequence;
+        }
+
+        // ==========================================
+        // Layer creation helpers
+        // ==========================================
+        function createDroneLayer(profile, notePool, reverb, macroRegions) {
+            const droneSynth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: 'sine' },
+                envelope: { attack: 1.1, decay: 0.25, sustain: 0.92, release: 3.2 }
+            }).connect(reverb);
+            droneSynth.volume.value = -12;
+
+            const droneFilter = new Tone.Filter({
+                type: 'lowpass',
+                frequency: 420,
+                rolloff: -24
+            });
+            const droneGain = new Tone.Gain(0.9);
+            droneSynth.disconnect();
+            droneSynth.connect(droneFilter);
+            droneFilter.connect(droneGain);
+            droneGain.connect(reverb);
+
+            const sourceNotes = notePool.length ? notePool : ['C2', 'G2', 'C3'];
+            const lowCount = Math.max(2, Math.floor(sourceNotes.length * 0.3));
+            const droneNotes = sourceNotes.slice(0, lowCount);
+
+            const melodicCount = Math.max(4, Math.floor(sourceNotes.length * 0.7));
+            const baseMelodyNotes = sourceNotes.slice(0, melodicCount);
+            const bottomMelodyNotes = baseMelodyNotes.map((note, index) => {
+                const transpose = index % 2 === 0 ? 12 : 0;
+                return Tone.Frequency(note).transpose(transpose).toNote();
+            });
+
+            const bottomMelodySynth = new Tone.MonoSynth({
+                oscillator: { type: 'triangle' },
+                envelope: { attack: 0.03, decay: 0.2, sustain: 0.35, release: 0.7 },
+                filterEnvelope: { attack: 0.02, decay: 0.25, sustain: 0.2, release: 0.5, baseFrequency: 170, octaves: 2.2 }
+            }).connect(reverb);
+            bottomMelodySynth.volume.value = -16;
+
+            const bottomMelodyFilter = new Tone.Filter({
+                type: 'lowpass',
+                frequency: 920,
+                rolloff: -12
+            });
+            const bottomMelodyGain = new Tone.Gain(0.9);
+            bottomMelodySynth.disconnect();
+            bottomMelodySynth.connect(bottomMelodyFilter);
+            bottomMelodyFilter.connect(bottomMelodyGain);
+            bottomMelodyGain.connect(reverb);
+
+            let macroIndex = 0;
+            const droneLoop = new Tone.Loop((time) => {
+                const region = macroRegions[macroIndex % macroRegions.length] || { brightness: 0.5, contrast: 0.1 };
+                const baseIndex = Math.floor(region.brightness * Math.max(1, droneNotes.length - 1));
+                const supportIndex = clamp(baseIndex + (region.contrast > 0.18 ? 2 : 1), 0, droneNotes.length - 1);
+
+                const root = droneNotes[baseIndex] || droneNotes[0] || 'C2';
+                const support = droneNotes[supportIndex] || droneNotes[Math.min(2, droneNotes.length - 1)] || 'G2';
+                const velocity = clamp(0.28 + region.contrast * 0.4, 0.25, 0.5);
+
+                droneFilter.frequency.rampTo(280 + region.brightness * 620, 1.2);
+                droneGain.gain.rampTo(clamp(0.78 + region.contrast * 0.4, 0.75, 1.0), 1.0);
+
+                droneSynth.triggerAttackRelease([root, support], '1m', time, velocity);
+                macroIndex += 1;
+            }, '1m');
+            droneLoop.start(0);
+
+            const melodicPattern = [0, 2, 1, 3, 2, 4, 1, 3];
+            let melodicOffset = 0;
+            const bottomMelodyLoop = new Tone.Sequence((time, stepIndex) => {
+                const region = macroRegions[(stepIndex + melodicOffset) % macroRegions.length] || { brightness: 0.5, contrast: 0.1 };
+                const patternIndex = melodicPattern[stepIndex % melodicPattern.length] || 0;
+                const brightnessLift = region.brightness > 0.68 ? 1 : 0;
+                const noteIndex = clamp(patternIndex + brightnessLift, 0, Math.max(0, bottomMelodyNotes.length - 1));
+                const targetNote = bottomMelodyNotes[noteIndex] || bottomMelodyNotes[0] || 'C3';
+                const accent = stepIndex % 4 === 0 ? 0.62 : 0.46;
+                const velocity = clamp(accent + region.contrast * 0.22, 0.35, 0.86);
+                const duration = stepIndex % 4 === 0 ? '4n' : '8n';
+
+                bottomMelodyFilter.frequency.rampTo(380 + region.brightness * 1500, 0.08);
+                bottomMelodySynth.triggerAttackRelease(targetNote, duration, time, velocity);
+
+                if (stepIndex === melodicPattern.length - 1) {
+                    melodicOffset = (melodicOffset + 1) % Math.max(1, macroRegions.length);
+                }
+            }, Array.from({ length: melodicPattern.length }, (_, index) => index), '8n');
+            bottomMelodyLoop.start(0);
+
+            droneGain.gain.value = clamp(0.4 + layerWeights.bottom * 0.7, 0.35, 1.05);
+            bottomMelodyGain.gain.value = clamp(0.25 + layerWeights.bottom * 1.05, 0.2, 1.25);
+
+            return {
+                droneSynth,
+                droneLoop,
+                droneFilter,
+                droneGain,
+                bottomMelodySynth,
+                bottomMelodyFilter,
+                bottomMelodyGain,
+                bottomMelodyLoop
+            };
+        }
+
+        function createTextureLayer(profile, artifactMetadata, reverb, stepData) {
+            const material = (artifactMetadata?.material || '').toLowerCase();
+            const isMetal = /metal|bronze|iron|steel/.test(material);
+            const isHard = /bone|wood|stone|rock|ceramic/.test(material);
+
+            let textureSynth;
+            if (isMetal) {
+                textureSynth = new Tone.MetalSynth({
+                    frequency: 120,
+                    envelope: { attack: 0.001, decay: 0.2, release: 0.08 },
+                    harmonicity: 3.1,
+                    modulationIndex: 16,
+                    resonance: 3000,
+                    octaves: 1.5
+                }).connect(reverb);
+                textureSynth.volume.value = -24;
+            } else if (isHard) {
+                textureSynth = new Tone.MembraneSynth({
+                    pitchDecay: 0.02,
+                    octaves: 2,
+                    envelope: { attack: 0.001, decay: 0.25, sustain: 0.01, release: 0.2 }
+                }).connect(reverb);
+                textureSynth.volume.value = -22;
+            } else {
+                textureSynth = new Tone.NoiseSynth({
+                    noise: { type: 'pink' },
+                    envelope: { attack: 0.01, decay: 0.12, sustain: 0.0, release: 0.2 }
+                }).connect(reverb);
+                textureSynth.volume.value = -26;
+            }
+
+            let stepIndex = 0;
+            const textureLoop = new Tone.Loop((time) => {
+                const step = stepData[stepIndex % stepData.length] || { brightness: 0.5, contrast: 0.1 };
+                const surfaceGate = layerWeights.surface > 0.35 ? 8 : 14;
+                const shouldTrigger = step.contrast > (0.3 - layerWeights.surface * 0.08) || stepIndex % surfaceGate === 0;
+
+                if (shouldTrigger) {
+                    const velocity = clamp(0.18 + step.contrast, 0.15, 0.5);
+                    if (textureSynth instanceof Tone.NoiseSynth) {
+                        textureSynth.triggerAttackRelease('16n', time, velocity);
+                    } else if (textureSynth instanceof Tone.MetalSynth) {
+                        textureSynth.triggerAttackRelease('16n', time, velocity);
+                    } else {
+                        textureSynth.triggerAttackRelease('C2', '16n', time, velocity);
+                    }
+                }
+
+                stepIndex += 1;
+            }, '2n');
+            textureLoop.start(0);
+            textureSynth.volume.value = -34 + layerWeights.surface * 18;
+
+            return { textureSynth, textureLoop };
+        }
+
+        // ==========================================
+        // Playback lifecycle helpers
+        // ==========================================
+        function stopPlayback() {
+            Tone.Transport.stop();
+            Tone.Transport.position = 0;
+            playBtn.innerText = 'ENGAGE_SEQUENCER';
+            playBtn.classList.remove('active');
+            appendSystemLog('SYNTHESIS_HALTED');
+            resetScanline();
+            hideScanline();
+        }
+
+        function disposeAudioEngine() {
+            if (audioEngine.melodySequence) {
+                audioEngine.melodySequence.stop(0);
+                audioEngine.melodySequence.dispose();
+                audioEngine.melodySequence = null;
+            }
+
+            if (audioEngine.droneLoop) {
+                audioEngine.droneLoop.stop(0);
+                audioEngine.droneLoop.dispose();
+                audioEngine.droneLoop = null;
+            }
+
+            if (audioEngine.bottomMelodyLoop) {
+                audioEngine.bottomMelodyLoop.stop(0);
+                audioEngine.bottomMelodyLoop.dispose();
+                audioEngine.bottomMelodyLoop = null;
+            }
+
+            if (audioEngine.textureLoop) {
+                audioEngine.textureLoop.stop(0);
+                audioEngine.textureLoop.dispose();
+                audioEngine.textureLoop = null;
+            }
+
+            if (audioEngine.mainSynth) {
+                audioEngine.mainSynth.dispose();
+                audioEngine.mainSynth = null;
+            }
+
+            if (audioEngine.mainFilter) {
+                audioEngine.mainFilter.dispose();
+                audioEngine.mainFilter = null;
+            }
+
+            if (audioEngine.mainPan) {
+                audioEngine.mainPan.dispose();
+                audioEngine.mainPan = null;
+            }
+
+            if (audioEngine.droneSynth) {
+                audioEngine.droneSynth.dispose();
+                audioEngine.droneSynth = null;
+            }
+
+            if (audioEngine.droneFilter) {
+                audioEngine.droneFilter.dispose();
+                audioEngine.droneFilter = null;
+            }
+
+            if (audioEngine.droneGain) {
+                audioEngine.droneGain.dispose();
+                audioEngine.droneGain = null;
+            }
+
+            if (audioEngine.bottomMelodySynth) {
+                audioEngine.bottomMelodySynth.dispose();
+                audioEngine.bottomMelodySynth = null;
+            }
+
+            if (audioEngine.bottomMelodyFilter) {
+                audioEngine.bottomMelodyFilter.dispose();
+                audioEngine.bottomMelodyFilter = null;
+            }
+
+            if (audioEngine.bottomMelodyGain) {
+                audioEngine.bottomMelodyGain.dispose();
+                audioEngine.bottomMelodyGain = null;
+            }
+
+            if (audioEngine.textureSynth) {
+                audioEngine.textureSynth.dispose();
+                audioEngine.textureSynth = null;
+            }
+
+            if (audioEngine.reverb) {
+                audioEngine.reverb.dispose();
+                audioEngine.reverb = null;
+            }
+
+            audioEngine.stepData = [];
+            audioEngine.notePool = [];
+            audioEngine.baseStepEvents = [];
+            audioEngine.macroRegions = [];
+            audioEngine.loopIndex = 0;
+            audioEngine.lastMelodyStepIndex = -1;
+            audioEngine.lastBrightness = 0.5;
+            Tone.Transport.cancel(0);
+        }
+
+        function showScanline() {
+            scanline.style.opacity = '1';
+            paramsScanline.style.opacity = '1';
+        }
+
+        function hideScanline() {
+            scanline.style.opacity = '0';
+            paramsScanline.style.opacity = '0';
+        }
+
+        function resetScanline() {
+            scanline.style.left = '0%';
+            paramsScanline.style.left = '0%';
+            scanProgress.textContent = `STEP 0 / ${MELODY_STEP_COUNT}`;
+            paramsScanProgress.textContent = `STEP 0 / ${MELODY_STEP_COUNT}`;
+        }
+
+        function updateScanline(stepIndex, totalSteps) {
+            if (!totalSteps || totalSteps < 2) {
+                scanline.style.left = '0%';
+                return;
+            }
+            const progress = stepIndex / (totalSteps - 1);
+            scanline.style.left = `${progress * 100}%`;
+            paramsScanline.style.left = `${progress * 100}%`;
+            scanProgress.textContent = `STEP ${stepIndex + 1} / ${totalSteps}`;
+            paramsScanProgress.textContent = `STEP ${stepIndex + 1} / ${totalSteps}`;
+        }
+
+        function buildAudioEngine(profile, imageElement, metadata) {
+            disposeAudioEngine();
+
+            const recordForArchetype = {
+                title: artifactTitle.textContent,
+                metadata,
+                sourceType: currentSourceType
+            };
+            const playbackProfile = derivePlaybackProfile(profile, recordForArchetype);
+
+            const baseBpm = Number(playbackProfile.bpm) || 80;
+            Tone.Transport.bpm.value = clamp(baseBpm * PLAYBACK_SPEED_MULTIPLIER, 48, 200);
+
+            const notePool = getScaleNotes(playbackProfile.scale, playbackProfile.register);
+            const sequenceInterval = getSequenceInterval(playbackProfile.rhythm_density);
+            const stepData = analyzeImageToSteps(imageElement, MELODY_STEP_COUNT);
+            const stepEvents = mapStepsToMelody(stepData, notePool);
+            const macroRegions = analyzeMacroRegions(stepData, 4);
+            audioEngine.middleGate = playbackProfile.middleGate || 3;
+
+            const reverb = createReverb(playbackProfile.reverb_size);
+            const mainFilter = new Tone.Filter({ type: 'lowpass', frequency: 1100, rolloff: -24 });
+            const mainPan = new Tone.Panner(0);
+            const mainSynth = createMainSynth(playbackProfile.synth_type);
+            mainSynth.connect(mainFilter);
+            mainFilter.connect(mainPan);
+            mainPan.connect(reverb);
+            mainSynth.volume.value = -22 + layerWeights.middle * 18;
+            const melodySequence = buildScanSequence(
+                stepEvents,
+                mainSynth,
+                sequenceInterval,
+                (stepIndex, _stepEvent, loopIndex) => {
+                    audioEngine.loopIndex = loopIndex;
+                    const step = stepData[stepIndex] || { brightness: 0.5, contrast: 0.1 };
+                    const brightness = step.brightness;
+                    const contrast = step.contrast;
+
+                    // Smooth continuous parameter changes, separate from note triggering.
+                    const middleDepth = clamp(0.35 + layerWeights.middle * 1.2, 0.3, 1.2);
+                    mainFilter.frequency.rampTo(280 + brightness * 2600 * middleDepth, 0.12);
+                    mainPan.pan.rampTo((brightness - 0.5) * 0.6 * middleDepth, 0.16);
+                    reverb.wet.rampTo(clamp(0.18 + contrast * 0.9, 0.2, 0.75), 0.2);
+
+                    updateScanline(stepIndex, stepEvents.length);
+                },
+                notePool
+            );
+
+            const {
+                droneSynth,
+                droneLoop,
+                droneFilter,
+                droneGain,
+                bottomMelodySynth,
+                bottomMelodyFilter,
+                bottomMelodyGain,
+                bottomMelodyLoop
+            } = createDroneLayer(profile, notePool, reverb, macroRegions);
+            const { textureSynth, textureLoop } = createTextureLayer(profile, metadata, reverb, stepData);
+
+            audioEngine.reverb = reverb;
+            audioEngine.mainSynth = mainSynth;
+            audioEngine.mainFilter = mainFilter;
+            audioEngine.mainPan = mainPan;
+            audioEngine.melodySequence = melodySequence;
+            audioEngine.droneSynth = droneSynth;
+            audioEngine.droneFilter = droneFilter;
+            audioEngine.droneGain = droneGain;
+            audioEngine.droneLoop = droneLoop;
+            audioEngine.bottomMelodySynth = bottomMelodySynth;
+            audioEngine.bottomMelodyFilter = bottomMelodyFilter;
+            audioEngine.bottomMelodyGain = bottomMelodyGain;
+            audioEngine.bottomMelodyLoop = bottomMelodyLoop;
+            audioEngine.textureSynth = textureSynth;
+            audioEngine.textureLoop = textureLoop;
+            audioEngine.stepData = stepData;
+            audioEngine.notePool = notePool;
+            audioEngine.baseStepEvents = stepEvents;
+            audioEngine.macroRegions = macroRegions;
+            audioEngine.loopIndex = 0;
+            audioEngine.playbackProfile = playbackProfile;
+
+            resetScanline();
+            applyLayerWeightsRealtime();
+        }
+
+        async function startPlayback() {
+            await Tone.start();
+            showScanline();
+            Tone.Transport.start();
+            playBtn.innerText = 'STOP_SEQUENCER';
+            playBtn.classList.add('active');
+            appendSystemLog('SEQUENCER_PROTOCOL_ENGAGED');
+        }
+
+
+        // ===============================
+        // 调用后端 API 生成音乐参数（后端从 .env 读取 OpenAI Key）
+        // ===============================
+        async function fetchGPTParams(metadata) {
+            const response = await fetch('/api/generate-from-metadata', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    metadata,
+                    systemPrompt: SYSTEM_PROMPT
+                })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error?.message || `HTTP ${response.status}`);
+            }
+
+            return response.json();
+        }
+
+        // 图片转 Data URL，供视觉模型读取
+        function fileToDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error('Failed to read image file.'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 当数据库未匹配时，直接根据图片内容生成参数
+        async function fetchGPTParamsFromImage(file) {
+            const imageDataUrl = await fileToDataURL(file);
+            const response = await fetch('/api/generate-from-image', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    imageDataUrl,
+                    systemPrompt: SYSTEM_PROMPT
+                })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error?.message || `HTTP ${response.status}`);
+            }
+
+            return response.json();
+        }
+
+        // ===============================================
+        // App shell initialization
+        // ===============================================
+        (function initializeAppShell() {
+            setActiveTab('camera');
+            updateSourceBadge('pending');
+            renderLibrary();
+            resetScanline();
+            weightBottomInput.value = String(layerWeights.bottom);
+            weightMiddleInput.value = String(layerWeights.middle);
+            weightSurfaceInput.value = String(layerWeights.surface);
+            weightBottomValue.textContent = `${Math.round(layerWeights.bottom * 100)}%`;
+            weightMiddleValue.textContent = `${Math.round(layerWeights.middle * 100)}%`;
+            weightSurfaceValue.textContent = `${Math.round(layerWeights.surface * 100)}%`;
+            appendSystemLog('TERMINAL_READY');
+        })();
+
+        // ===============================
+        // 播放按钮点击事件：参数转声音
+        // ===============================
+        playBtn.addEventListener('click', async () => {
+            if (!currentParams) return;
+
+            if (Tone.Transport.state === 'started') {
+                stopPlayback();
+                return;
+            }
+
+            playBtn.innerText = 'SYNTHESIZING...';
+            playBtn.classList.remove('active');
+
+            try {
+                buildAudioEngine(currentParams, imagePreview, currentMetadata);
+                await startPlayback();
+            } catch (error) {
+                playBtn.innerText = 'ENGAGE_SEQUENCER';
+                paramOutput.innerHTML = `<span style="color:red">Audio engine build failed: ${error.message}</span>`;
+                appendSystemLog('AUDIO_ENGINE_BUILD_FAILED');
+            }
+        });
+
+    </script>
+    </body>
+</html>
