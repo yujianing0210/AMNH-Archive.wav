@@ -1,16 +1,15 @@
-可以。我先把你的两个核心诉求提炼清楚，再把它们分别转成：
 # COPILOT INSTRUCTIONS — Rebalance Sound Layers and Add AI Artifact Record Inference
 
 ## Project context
 
 The current app already supports:
 
-* image upload
-* database matching
-* AI fallback
-* three-layer sound generation
-* scanline playback
-* Sensor / Params / Library mobile-style UI
+- image upload
+- database matching
+- AI fallback
+- three-layer sound generation
+- scanline playback
+- Sensor / Params / Library mobile-style UI
 
 The current prototype is working, but two major issues need to be addressed:
 
@@ -30,15 +29,15 @@ Make incremental changes around the current working structure.
 
 Refactor the sound engine so that:
 
-* Bottom layer becomes the dominant musical layer
-* Middle layer becomes a secondary image-driven modulation layer
-* Surface layer remains sparse and textural
+- Bottom layer becomes the dominant musical layer
+- Middle layer becomes a secondary image-driven modulation layer
+- Surface layer remains sparse and textural
 
 The system should sound less step-choppy and more like:
 
-* a stable artifact-specific sonic bed
-* gently modulated by image traversal
-* accented by sparse material detail
+- a stable artifact-specific sonic bed
+- gently modulated by image traversal
+- accented by sparse material detail
 
 ---
 
@@ -46,9 +45,9 @@ The system should sound less step-choppy and more like:
 
 Add 3 sliders to the Params screen so the user can control the relative contribution of:
 
-* Bottom Layer
-* Middle Layer
-* Surface Layer
+- Bottom Layer
+- Middle Layer
+- Surface Layer
 
 These sliders should influence playback in real time or near-real time.
 
@@ -63,20 +62,20 @@ Strengthen the sonic mapping so that different artifact classes sound much more 
 
 The sound generator should more strongly reflect:
 
-* era
-* material
-* category
-* function
-* visual character
+- era
+- material
+- category
+- function
+- visual character
 
 For example:
 
-* gemstone → bright / shimmering / crystalline
-* butterfly → light / agile / fluttering
-* leather boot → dry / grounded / rustic
-* fossil → ancient / rough / slow
-* tool → structured / sharper / harder
-* textile / garment → soft / flowing / fibrous
+- gemstone → bright / shimmering / crystalline
+- butterfly → light / agile / fluttering
+- leather boot → dry / grounded / rustic
+- fossil → ancient / rough / slow
+- tool → structured / sharper / harder
+- textile / garment → soft / flowing / fibrous
 
 The result should not feel like the same engine with only small numeric changes.
 
@@ -112,22 +111,22 @@ Make the bottom layer the default anchor of the sound system.
 
 ### Bottom layer should now do more of the following
 
-* carry the main atmospheric identity
-* define tonal center and sustained mood
-* contribute more audible continuity
-* reflect metadata and inferred artifact character
+- carry the main atmospheric identity
+- define tonal center and sustained mood
+- contribute more audible continuity
+- reflect metadata and inferred artifact character
 
 ### Middle layer should now do less of the following
 
-* do not dominate rhythm or melody at every step
-* do not feel like the main voice of the piece
-* act more like a modulation / traversal layer
+- do not dominate rhythm or melody at every step
+- do not feel like the main voice of the piece
+- act more like a modulation / traversal layer
 
 ### Surface layer
 
-* remain sparse
-* support materiality and texture
-* never overpower the bottom or middle layers
+- remain sparse
+- support materiality and texture
+- never overpower the bottom or middle layers
 
 ---
 
@@ -135,16 +134,16 @@ Make the bottom layer the default anchor of the sound system.
 
 Please refactor playback so that:
 
-* the drone / bottom layer is more audible and more continuous
-* the scan-driven layer triggers fewer dominant note events
-* the middle layer may modulate:
+- the drone / bottom layer is more audible and more continuous
+- the scan-driven layer triggers fewer dominant note events
+- the middle layer may modulate:
+  - filter
+  - note probability
+  - brightness of timbre
+  - pitch motion
+  - pan
 
-  * filter
-  * note probability
-  * brightness of timbre
-  * pitch motion
-  * pan
-* the surface layer becomes subtle accents only
+- the surface layer becomes subtle accents only
 
 ### Important
 
@@ -159,22 +158,22 @@ Keep it, but make it less dominant in the final sound.
 
 In the Params screen, add a new section named something like:
 
-* `LAYER WEIGHT CONTROLS`
-* or `THREE-LAYER BALANCE`
+- `LAYER WEIGHT CONTROLS`
+- or `THREE-LAYER BALANCE`
 
 ## Add 3 sliders
 
-* Bottom Layer Weight
-* Middle Layer Weight
-* Surface Layer Weight
+- Bottom Layer Weight
+- Middle Layer Weight
+- Surface Layer Weight
 
 ### Suggested default values
 
 Use defaults that emphasize bottom layer, for example:
 
-* Bottom: 0.6
-* Middle: 0.25
-* Surface: 0.15
+- Bottom: 0.6
+- Middle: 0.25
+- Surface: 0.15
 
 These can be tuned.
 
@@ -186,21 +185,21 @@ Adjusting these sliders should update playback behavior meaningfully.
 
 ### Bottom weight should affect things like
 
-* drone gain / prominence
-* sustained harmonic presence
-* atmospheric continuity
+- drone gain / prominence
+- sustained harmonic presence
+- atmospheric continuity
 
 ### Middle weight should affect things like
 
-* scan-driven note layer loudness
-* filter motion depth
-* image-driven event strength
+- scan-driven note layer loudness
+- filter motion depth
+- image-driven event strength
 
 ### Surface weight should affect things like
 
-* texture gain
-* accent frequency
-* accent sharpness or presence
+- texture gain
+- accent frequency
+- accent sharpness or presence
 
 If real-time updates are hard, rebuild or refresh audio engine safely after changes.
 
@@ -216,8 +215,8 @@ Suggested structure:
 layerWeights = {
   bottom: 0.6,
   middle: 0.25,
-  surface: 0.15
-}
+  surface: 0.15,
+};
 ```
 
 These weights should be accessible by the audio engine and Params UI.
@@ -237,17 +236,17 @@ Strengthen the semantic mapping from artifact identity to sonic character.
 ### Please create or improve an internal mapping layer such as
 
 ```js
-getArtifactSonicArchetype(record)
+getArtifactSonicArchetype(record);
 ```
 
 This helper should inspect inferred or database metadata such as:
 
-* era
-* material
-* category
-* function
-* description
-* title keywords
+- era
+- material
+- category
+- function
+- description
+- title keywords
 
 and return high-level sonic tendencies.
 
@@ -257,52 +256,52 @@ and return high-level sonic tendencies.
 
 ### Ancient / fossil / archaeological object
 
-* slower
-* darker
-* rougher
-* deeper reverb
-* heavier drone
-* lower register
-* more sedimented / sparse surface accents
+- slower
+- darker
+- rougher
+- deeper reverb
+- heavier drone
+- lower register
+- more sedimented / sparse surface accents
 
 ### Gem / jewel / crystal object
 
-* brighter
-* shimmering
-* high register
-* metallic or glass-like accents
-* more sparkle in surface layer
+- brighter
+- shimmering
+- high register
+- metallic or glass-like accents
+- more sparkle in surface layer
 
 ### Butterfly / insect specimen
 
-* lighter
-* agile
-* flutter-like melodic behavior
-* softer but lively surface detail
-* less heavy drone
+- lighter
+- agile
+- flutter-like melodic behavior
+- softer but lively surface detail
+- less heavy drone
 
 ### Leather footwear / rustic utilitarian object
 
-* dry
-* grounded
-* muted
-* earthy
-* lower-mid register
-* restrained surface layer
+- dry
+- grounded
+- muted
+- earthy
+- lower-mid register
+- restrained surface layer
 
 ### Tool / instrument / mechanical object
 
-* clearer attacks
-* stronger structure
-* more articulated middle layer
-* tighter rhythmic feel
+- clearer attacks
+- stronger structure
+- more articulated middle layer
+- tighter rhythmic feel
 
 ### Textile / garment / feather / woven object
 
-* softer
-* airy or flowing
-* fibrous texture accents
-* gentle movement
+- softer
+- airy or flowing
+- fibrous texture accents
+- gentle movement
 
 ---
 
@@ -326,14 +325,14 @@ When no database match exists, artifact summary values stay blank or incomplete.
 
 When database match fails:
 
-* call a dedicated inference step first
-* generate a structured artifact record
+- call a dedicated inference step first
+- generate a structured artifact record
 
 ### Step 2 — sonic generation
 
 Only after that record exists:
 
-* generate sonic profile from inferred record + image features
+- generate sonic profile from inferred record + image features
 
 ---
 
@@ -359,13 +358,12 @@ Please generate and normalize a record object with fields like:
 
 ### Notes
 
-* fields can contain estimated labels
-* do not leave them blank unless absolutely necessary
-* if uncertain, use values like:
-
-  * “Estimated modern specimen board”
-  * “Estimated North American leather footwear”
-  * “Estimated decorative mineral object”
+- fields can contain estimated labels
+- do not leave them blank unless absolutely necessary
+- if uncertain, use values like:
+  - “Estimated modern specimen board”
+  - “Estimated North American leather footwear”
+  - “Estimated decorative mineral object”
 
 The goal is to always produce a usable summary for UI and sound generation.
 
@@ -397,21 +395,21 @@ Do not show empty summary fields when source is AI inferred.
 
 ### Required fields to show
 
-* title
-* era
-* origin / culture
-* source badge
+- title
+- era
+- origin / culture
+- source badge
 
 Optional:
 
-* material
-* category
-* confidence
+- material
+- category
+- confidence
 
 ### Source badge values
 
-* `DATABASE ARCHIVE`
-* `AI INFERRED RECORD`
+- `DATABASE ARCHIVE`
+- `AI INFERRED RECORD`
 
 ---
 
@@ -423,9 +421,9 @@ The Params screen should clearly indicate the record basis used for sound genera
 
 Update the `RecordSourceCard` so that it can display:
 
-* matched database record
-* AI inferred record
-* optional confidence / note that it is estimated
+- matched database record
+- AI inferred record
+- optional confidence / note that it is estimated
 
 This gives proper curatorial context for the generated sound.
 
@@ -452,15 +450,15 @@ Suggested order:
 
 Each slider should show:
 
-* layer label
-* current numeric value or percentage
-* immediate visual update
+- layer label
+- current numeric value or percentage
+- immediate visual update
 
 Suggested labels:
 
-* `BOTTOM / HISTORICAL ATMOSPHERE`
-* `MIDDLE / IMAGE TRAVERSAL`
-* `SURFACE / MATERIAL TEXTURE`
+- `BOTTOM / HISTORICAL ATMOSPHERE`
+- `MIDDLE / IMAGE TRAVERSAL`
+- `SURFACE / MATERIAL TEXTURE`
 
 ---
 
@@ -468,26 +466,26 @@ Suggested labels:
 
 ## Audio
 
-* bottom layer is more perceptually dominant by default
-* scanline layer no longer makes the whole piece feel overly choppy
-* surface layer remains subtle
-* overall sound feels more coherent and artifact-driven
+- bottom layer is more perceptually dominant by default
+- scanline layer no longer makes the whole piece feel overly choppy
+- surface layer remains subtle
+- overall sound feels more coherent and artifact-driven
 
 ## UI
 
-* Params screen includes 3 working layer-weight sliders
-* Sensor screen shows complete inferred artifact summaries for unmatched images
-* RecordSourceCard clearly distinguishes database vs AI inferred
+- Params screen includes 3 working layer-weight sliders
+- Sensor screen shows complete inferred artifact summaries for unmatched images
+- RecordSourceCard clearly distinguishes database vs AI inferred
 
 ## Data / logic
 
-* unmatched images go through record inference before sonic generation
-* inferred records are stored in a structured object
-* sound generation uses that record as input
+- unmatched images go through record inference before sonic generation
+- inferred records are stored in a structured object
+- sound generation uses that record as input
 
 ## Differentiation
 
-* butterfly, gem, fossil, leather object, textile, tool, etc. sound meaningfully different
+- butterfly, gem, fossil, leather object, textile, tool, etc. sound meaningfully different
 
 ---
 
@@ -529,12 +527,12 @@ Do not skip ahead if earlier steps are incomplete.
 
 # IMPORTANT SAFETY RULES
 
-* do not break current save / replay / library logic
-* do not remove scanline playback
-* do not remove three-layer model
-* do not turn Params into a genre-selection page
-* do not leave AI inferred artifact summaries blank
-* do not rewrite the app into a different framework
+- do not break current save / replay / library logic
+- do not remove scanline playback
+- do not remove three-layer model
+- do not turn Params into a genre-selection page
+- do not leave AI inferred artifact summaries blank
+- do not rewrite the app into a different framework
 
 ---
 
@@ -542,12 +540,11 @@ Do not skip ahead if earlier steps are incomplete.
 
 After this update:
 
-* unmatched images produce meaningful inferred artifact records
-* those records appear in the Sensor and Params screens
-* sonic generation is more strongly grounded in artifact identity
-* the bottom layer provides the main character of the piece
-* middle and surface layers act as modulation/detail layers
-* the Params screen allows balancing the three layers interactively
-
+- unmatched images produce meaningful inferred artifact records
+- those records appear in the Sensor and Params screens
+- sonic generation is more strongly grounded in artifact identity
+- the bottom layer provides the main character of the piece
+- middle and surface layers act as modulation/detail layers
+- the Params screen allows balancing the three layers interactively
 
 **Focus first on the data pipeline for AI inferred artifact records, then on layer rebalance, then on the UI sliders. Do not start by tweaking CSS only.**
